@@ -56,6 +56,7 @@ export interface Translations {
         delete: string;
         deleteConfirm: string;
         save: string;
+        saved: string;
         cancel: string;
         addIngredient: string;
         ingredientName: string;
@@ -283,6 +284,7 @@ export const translations: Record<Language, Translations> = {
             delete: 'Delete',
             deleteConfirm: 'Are you sure you want to delete',
             save: 'Save Recipe',
+            saved: 'Recipe saved',
             cancel: 'Cancel',
             addIngredient: 'Add Ingredient',
             ingredientName: 'Ingredient name',
@@ -504,6 +506,7 @@ export const translations: Record<Language, Translations> = {
             delete: 'Elimina',
             deleteConfirm: 'Sei sicuro di voler eliminare',
             save: 'Salva Ricetta',
+            saved: 'Ricetta salvata',
             cancel: 'Annulla',
             addIngredient: 'Aggiungi Ingrediente',
             ingredientName: 'Nome ingrediente',

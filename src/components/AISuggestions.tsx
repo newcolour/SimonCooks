@@ -380,7 +380,7 @@ export function AISuggestions({
                             {saved ? (
                                 <span className="saved-badge">
                                     <CheckCircle size={16} />
-                                    {t.settings.saved}
+                                    {t.recipe.saved}
                                 </span>
                             ) : (
                                 <button className="save-btn" onClick={handleSave}>
