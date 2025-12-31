@@ -1197,10 +1197,18 @@ Appetizing, authentic texture. No text.`;
 
             // Use backend proxy to avoid CORS
             if (window.electronAPI?.ai) {
+                // Ensure we send a valid Cloudflare model ID to avoid confusing logs/errors
+                const cfModel = settings.imageModel?.startsWith('@cf/')
+                    ? settings.imageModel
+                    : '@cf/black-forest-labs/flux-1-schnell';
+
                 return await window.electronAPI.ai.generateImage({
                     provider: 'cloudflare',
                     prompt: imagePrompt,
-                    settings
+                    settings: {
+                        ...settings,
+                        imageModel: cfModel
+                    }
                 });
             }
 

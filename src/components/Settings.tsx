@@ -274,7 +274,14 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                             <button
                                 key={provider.id}
                                 className={`provider-card ${localSettings.imageProvider === provider.id ? 'selected' : ''}`}
-                                onClick={() => setLocalSettings({ ...localSettings, imageProvider: provider.id })}
+                                onClick={() => {
+                                    const defaultModel = IMAGE_MODELS[provider.id]?.[0]?.id || '';
+                                    setLocalSettings({
+                                        ...localSettings,
+                                        imageProvider: provider.id,
+                                        imageModel: defaultModel
+                                    });
+                                }}
                             >
                                 <span className="provider-name">{provider.name}</span>
                             </button>
