@@ -1,0 +1,160 @@
+/* App Layout */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary);
+  transition: flex var(--transition-normal), opacity var(--transition-normal);
+}
+
+.main-content.with-panel {
+  flex: 0 0 50%;
+}
+
+.main-content.focus-hidden {
+  flex: 0 0 0% !important;
+  width: 0;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.right-panel {
+  flex: 0 0 50%;
+  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  animation: slideInRight 0.3s ease;
+  transition: flex var(--transition-normal);
+}
+
+.right-panel.focus-expanded {
+  flex: 1 !important;
+  border-left: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .main-content.with-panel {
+    flex: 0 0 45%;
+  }
+
+  .right-panel {
+    flex: 0 0 55%;
+  }
+}
+
+@media (max-width: 1000px) {
+  .main-content.with-panel {
+    flex: 0 0 40%;
+  }
+
+  .right-panel {
+    flex: 0 0 60%;
+  }
+}
+
+/* Traffic light area padding for macOS */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Glass morphism helper for overlays */
+.glass-overlay {
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Common button styles */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* Tooltip styles */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  z-index: 1000;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* Focus trap for modals */
+.focus-trap {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Loading states */
+.skeleton {
+  background: linear-gradient(90deg,
+      var(--color-bg-tertiary) 25%,
+      var(--color-bg-elevated) 50%,
+      var(--color-bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
