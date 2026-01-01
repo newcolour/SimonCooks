@@ -266,6 +266,7 @@ Key rules:
 1. Structure: Output strictly JSON matching the DrinkRecipe interface.
 2. Fields: "glassware", "ice", and "tools" are required.
 3. Variants: If "isAlcoholic" is true, you MUST populate "aiVariants.virgin_version" with a non-alcoholic modification.
+4. Servings: Standard drink recipes are for 1 serving. Ensure "servings" is set to 1 unless the user explicitly asks for a batch. Verify that ingredient quantities match the serving size (e.g., ~60-90ml spirit total for 1 serving). DO NOT hallucinate "4 servings" for single-drink quantities.
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -490,7 +491,59 @@ export async function suggestRecipe(settings: AISettings, existingRecipes: Recip
 
     // Ensure the result has the correct type
     result.type = mode;
+
+    // Validate Drink Portions (User Request)
+    if (mode === 'drink') {
+        return await validateDrinkRecipe(settings, result, language);
+    }
+
     return result;
+}
+
+// Validation helper for drink portions
+async function validateDrinkRecipe(settings: AISettings, recipe: any, language: string): Promise<SuggestedRecipe> {
+    console.log('[AI] Validating drink portions...');
+    const prompt = `Review this drink recipe and correct any inconsistencies between "servings" and ingredient amounts:\n${JSON.stringify(recipe, null, 2)}\n\nPROBLEM: Often recipes say "4 servings" but ingredients are for 1 serving (e.g. 60ml gin total). \n\nACTION:\n1. Check if ingredients correspond to a SINGLE drink (standard cocktail).\n2. If "servings" > 1 but ingredients are single-portion, MULTIPLY the ingredients by the serving count.\n3. OR set servings to 1 if that was the intent.\n4. Ensure the output JSON is valid and matches the input structure.\n\nRespond ONLY with the corrected JSON. Keep string values in the original language (${language}).`;
+
+    const systemPrompt = "You are a quality control assistant for a bar. You fix recipe scaling errors. Output raw JSON only.";
+
+    let response: string;
+    try {
+        switch (settings.provider) {
+            case 'openai':
+                if (!settings.apiKey) return recipe;
+                response = await callOpenAI(settings.apiKey, prompt, systemPrompt);
+                break;
+            case 'anthropic':
+                if (!settings.apiKey) return recipe;
+                response = await callAnthropic(settings.apiKey, prompt, systemPrompt);
+                break;
+            case 'gemini':
+                if (!settings.apiKey) return recipe;
+                response = await callGemini(settings.apiKey, prompt, systemPrompt);
+                break;
+            case 'ollama':
+                response = await callOllama(
+                    settings.ollamaEndpoint || 'http://localhost:11434',
+                    settings.ollamaModel || 'llama3.2',
+                    prompt,
+                    systemPrompt
+                );
+                break;
+            default:
+                return recipe;
+        }
+
+        const jsonMatch = response.match(/```json?\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const fixed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            return { ...recipe, ...fixed };
+        }
+        return recipe;
+    } catch (e) {
+        console.warn('Drink validation failed, using original', e);
+        return recipe;
+    }
 }
 
 const CHEF_MODE_PROMPT = `You are a professional chef participating in a cooking challenge. 
