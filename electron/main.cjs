@@ -68,7 +68,7 @@ function initDatabase() {
   // Migrations for existing columns
   const migrationColumns = [
     'nutrition', 'flavorProfile', 'sourceUrl',
-    'type', 'glassware', 'ice', 'tools', 'isAlcoholic', 'aiVariants'
+    'type', 'glassware', 'ice', 'tools', 'isAlcoholic', 'aiVariants', 'rating'
   ];
 
   migrationColumns.forEach(col => {
@@ -273,9 +273,9 @@ ipcMain.handle('recipe:create', (_, recipe) => {
     id, title, description, ingredients, instructions, cookingTime, servings, notes,
     allergens, categories, imageUrl, nutrition, flavorProfile, sourceUrl, aiGenerated,
     createdAt, updatedAt,
-    type, glassware, ice, tools, isAlcoholic, aiVariants
+    type, glassware, ice, tools, isAlcoholic, aiVariants, rating
   )
-  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const now = new Date().toISOString();
@@ -305,7 +305,8 @@ ipcMain.handle('recipe:create', (_, recipe) => {
       !isFood ? (recipe.ice || null) : null,
       !isFood ? JSON.stringify(recipe.tools || []) : null,
       !isFood ? (recipe.isAlcoholic ? 1 : 0) : 0,
-      !isFood ? (recipe.aiVariants ? JSON.stringify(recipe.aiVariants) : null) : null
+      !isFood ? (recipe.aiVariants ? JSON.stringify(recipe.aiVariants) : null) : null,
+      recipe.rating || 0
     );
 
     console.log('[Main] Recipe created successfully');
@@ -325,7 +326,7 @@ ipcMain.handle('recipe:update', (_, recipe) => {
     cookingTime = ?, servings = ?, notes = ?, allergens = ?,
     categories = ?, imageUrl = ?, nutrition = ?, flavorProfile = ?, sourceUrl = ?,
     aiGenerated = ?, updatedAt = ?,
-    type = ?, glassware = ?, ice = ?, tools = ?, isAlcoholic = ?, aiVariants = ?
+    type = ?, glassware = ?, ice = ?, tools = ?, isAlcoholic = ?, aiVariants = ?, rating = ?
       WHERE id = ?
         `);
 
@@ -354,6 +355,7 @@ ipcMain.handle('recipe:update', (_, recipe) => {
       !isFood ? JSON.stringify(recipe.tools || []) : null,
       !isFood ? (recipe.isAlcoholic ? 1 : 0) : 0,
       !isFood ? (recipe.aiVariants ? JSON.stringify(recipe.aiVariants) : null) : null,
+      recipe.rating || 0,
       recipe.id
     );
 
