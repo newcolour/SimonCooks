@@ -223,12 +223,23 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                 }
+                setIsImporting(false);
             } else {
                 // Web/Mobile Fallback
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
+
+                // Detect cancellation by listening for window focus
+                const handleCancel = () => {
+                    setTimeout(() => {
+                        setIsImporting(false);
+                        window.removeEventListener('focus', handleCancel);
+                    }, 300);
+                };
+
                 input.onchange = async (e) => {
+                    window.removeEventListener('focus', handleCancel);
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
                         try {
@@ -254,12 +265,10 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                         setIsImporting(false);
                     }
                 };
+
+                // Add focus listener before clicking
+                window.addEventListener('focus', handleCancel);
                 input.click();
-                // Wait for user interaction? No, input.click() is async in UI but synchronous in execution flow. 
-                // We won't block here, but we set isImporting to false only in onchange or if no file (cancelled).
-                // Actually, cancellation is hard to detect with input type file.
-                // We'll set isImporting false immediately for web fallback usage flow or inside onchange.
-                // Better UX: keep it simple.
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Import failed");
@@ -327,12 +336,23 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                 }
+                setIsImportingSettings(false);
             } else {
                 // Web/Mobile Fallback
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
+
+                // Detect cancellation by listening for window focus
+                const handleCancel = () => {
+                    setTimeout(() => {
+                        setIsImportingSettings(false);
+                        window.removeEventListener('focus', handleCancel);
+                    }, 300);
+                };
+
                 input.onchange = async (e) => {
+                    window.removeEventListener('focus', handleCancel);
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
                         try {
@@ -363,6 +383,9 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                         setIsImportingSettings(false);
                     }
                 };
+
+                // Add focus listener before clicking
+                window.addEventListener('focus', handleCancel);
                 input.click();
             }
         } catch (err) {
