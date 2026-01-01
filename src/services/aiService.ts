@@ -502,11 +502,26 @@ export async function suggestRecipe(settings: AISettings, existingRecipes: Recip
 
 // Validation helper for drink portions
 export async function validateDrinkRecipe(settings: AISettings, recipe: any, language: string): Promise<SuggestedRecipe> {
-    console.log('[AI] Validating drink portions...');
+    console.log('[AI] Validating drink portions (fast mode)...');
     console.log(`[AI] Using provider: ${settings.provider}`);
-    const prompt = `Review this drink recipe and correct any inconsistencies between "servings" and ingredient amounts:\n${JSON.stringify(recipe, null, 2)}\n\nPROBLEM: Often recipes say "4 servings" but ingredients are for 1 serving (e.g. 60ml gin total). \n\nACTION:\n1. Check if ingredients correspond to a SINGLE drink (standard cocktail).\n2. If "servings" > 1 but ingredients are single-portion, MULTIPLY the ingredients by the serving count.\n3. OR set servings to 1 if that was the intent.\n4. Ensure the output JSON is valid and matches the input structure.\n\nRespond ONLY with the corrected JSON. Keep string values in the original language (${language}).`;
 
-    const systemPrompt = "You are a quality control assistant for a bar. You fix recipe scaling errors. Output raw JSON only.";
+    // Optimization: Send only relevant fields to reduce latency
+    const context = {
+        title: recipe.title,
+        servings: recipe.servings,
+        ingredients: recipe.ingredients
+    };
+
+    const prompt = `Task: Validate and correct drink portions.
+Context: ${JSON.stringify(context)}
+Issue: "Servings" count often mismatches ingredient quantities (e.g. 4 servings labeled, but ingredients are for 1 drink).
+Action:
+1. If ingredients are for a SINGLE drink (e.g. ~60-90ml alcohol total) but servings > 1: Multiply ingredient amounts by 'servings'.
+2. Alternatively, if appropriate, set 'servings' to 1.
+3. Return ONLY valid JSON with the corrected keys: { "servings": number, "ingredients": [...] }.
+4. Do NOT change ingredient names, only amounts/units if needed.`;
+
+    const systemPrompt = "You are a fast quality control bot. Return minimal JSON updates only.";
 
     let response: any;
     try {
@@ -541,7 +556,6 @@ export async function validateDrinkRecipe(settings: AISettings, recipe: any, lan
         if (typeof response !== 'string') {
             console.warn('[AI] Response is not a string:', typeof response);
             if (response && typeof response === 'object') {
-                // If it is already an object, assume it is the parsed JSON
                 return { ...recipe, ...response };
             }
             return recipe;
@@ -550,7 +564,12 @@ export async function validateDrinkRecipe(settings: AISettings, recipe: any, lan
         const jsonMatch = response.match(/```json?\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const fixed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-            return { ...recipe, ...fixed };
+            // Merge only the fixed fields back into the recipe
+            return {
+                ...recipe,
+                servings: fixed.servings || recipe.servings,
+                ingredients: fixed.ingredients || recipe.ingredients
+            };
         }
         return recipe;
     } catch (e) {
