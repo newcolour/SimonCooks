@@ -126,6 +126,37 @@ function OllamaSettings({ localSettings, setLocalSettings, language }: OllamaSet
                     <span className="models-error">{modelsError}</span>
                 )}
             </div>
+
+            {/* Advanced Vision Settings */}
+            <div className="form-group advanced-section">
+                <label className="section-label">
+                    {language === 'it' ? '🔬 Impostazioni Avanzate (Visione AI)' : '🔬 Advanced Settings (AI Vision)'}
+                </label>
+                <div className="vision-temperature-control">
+                    <label>
+                        {language === 'it' ? 'Temperatura Analisi Immagini' : 'Image Analysis Temperature'}
+                        <span className="temp-value">{(localSettings.visionTemperature ?? 0.3).toFixed(1)}</span>
+                    </label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={localSettings.visionTemperature ?? 0.3}
+                        onChange={(e) => setLocalSettings({ ...localSettings, visionTemperature: parseFloat(e.target.value) })}
+                        className="temperature-slider"
+                    />
+                    <div className="temp-labels">
+                        <span>{language === 'it' ? 'Conservativo' : 'Conservative'}</span>
+                        <span>{language === 'it' ? 'Sensibile' : 'Sensitive'}</span>
+                    </div>
+                    <p className="temp-warning">
+                        ⚠️ {language === 'it'
+                            ? 'Temperatura più alta = più ingredienti rilevati, ma anche più allucinazioni possibili'
+                            : 'Higher temperature = more ingredients detected, but more hallucinations possible'}
+                    </p>
+                </div>
+            </div>
         </>
     );
 }

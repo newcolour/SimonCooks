@@ -106,24 +106,24 @@ export async function analyzeFridgeImage(
     // Use the configured model or default to gemma3:12b for multimodal
     const model = settings.ollamaModel || 'gemma3:12b';
 
-    // Strict anti-hallucination prompt
+    // Balanced anti-hallucination prompt
     const systemPrompt = language === 'it'
-        ? `Sei un assistente che analizza foto di frigo/dispensa. REGOLE RIGOROSE:
-1. Elenca SOLO ingredienti che puoi CHIARAMENTE VEDERE nell'immagine
-2. NON indovinare, NON inferire, NON assumere nulla
-3. Se non sei sicuro al 100%, NON includerlo
-4. Restituisci un array JSON di stringhe
-5. Se non vedi NESSUN ingrediente, restituisci []
+        ? `Sei un assistente che analizza foto di frigo/dispensa. REGOLE:
+1. Elenca gli ingredienti che puoi VEDERE CHIARAMENTE nell'immagine
+2. Includi solo cibi riconoscibili e identificabili
+3. NON inventare ingredienti che non vedi
+4. Se vedi contenitori/bottiglie senza etichetta chiara, prova a identificare il contenuto dal contesto
+5. Restituisci un array JSON di stringhe
 
-Esempio: ["pomodori", "latte", "uova"]`
-        : `You are an assistant analyzing fridge/pantry photos. STRICT RULES:
-1. List ONLY ingredients you can CLEARLY SEE in the image
-2. Do NOT guess, do NOT infer, do NOT assume anything
-3. If you are not 100% certain, do NOT include it
-4. Return a JSON array of strings
-5. If you see NO food ingredients, return []
+Esempio: ["pomodori", "latte", "uova", "formaggio", "olio"]`
+        : `You are an assistant analyzing fridge/pantry photos. RULES:
+1. List ingredients you can CLEARLY SEE in the image
+2. Include only recognizable and identifiable foods
+3. Do NOT invent ingredients you don't see
+4. If you see containers/bottles without clear labels, try to identify contents from context
+5. Return a JSON array of strings
 
-Example: ["tomatoes", "milk", "eggs"]`;
+Example: ["tomatoes", "milk", "eggs", "cheese", "oil"]`;
 
     try {
         console.log(`Analyzing image with model: ${model} at ${endpoint}`);
@@ -140,9 +140,9 @@ Example: ["tomatoes", "milk", "eggs"]`;
                 stream: false,
                 format: "json",
                 options: {
-                    temperature: 0.1,  // Very low temperature to reduce creativity/hallucination
+                    temperature: settings.visionTemperature ?? 0.3,  // User-configurable, default 0.3
                     top_p: 0.9,
-                    num_predict: 100   // Limit response length
+                    num_predict: 150   // Allow slightly longer responses
                 }
             }),
         });
