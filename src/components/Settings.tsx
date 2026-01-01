@@ -215,9 +215,9 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
     };
 
     const handleImport = async () => {
-        setIsImporting(true);
         try {
             if (window.electronAPI) {
+                setIsImporting(true);
                 const result = await window.electronAPI.recipe.import();
                 if (result.success) {
                     setSaved(true);
@@ -225,23 +225,15 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                 }
                 setIsImporting(false);
             } else {
-                // Web/Mobile Fallback
+                // Web/Mobile Fallback - Don't set loading state until file is selected
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
 
-                // Detect cancellation by listening for window focus
-                const handleCancel = () => {
-                    setTimeout(() => {
-                        setIsImporting(false);
-                        window.removeEventListener('focus', handleCancel);
-                    }, 300);
-                };
-
                 input.onchange = async (e) => {
-                    window.removeEventListener('focus', handleCancel);
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
+                        setIsImporting(true); // Set loading state only when file is selected
                         try {
                             let text = await file.text();
                             // Strip UTF-8 BOM if present
@@ -266,8 +258,6 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     }
                 };
 
-                // Add focus listener before clicking
-                window.addEventListener('focus', handleCancel);
                 input.click();
             }
         } catch (err) {
@@ -315,12 +305,12 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
     };
 
     const handleImportSettings = async () => {
-        setIsImportingSettings(true);
         try {
             if (window.electronAPI) {
                 // For Electron, the main process handles the DB update directly, but we need to reload the UI state 
                 // Since this component uses props for some settings and local state for AI, it might be tricky without a full app reload
                 // However, onImportSettings prop can trigger a re-fetch from parent
+                setIsImportingSettings(true);
                 const result = await window.electronAPI.settings.import();
                 if (result.success) {
                     if (onImportSettings) {
@@ -338,7 +328,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                 }
                 setIsImportingSettings(false);
             } else {
-                // Web/Mobile Fallback
+                // Web/Mobile Fallback - Don't set loading state until file is selected
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
@@ -355,6 +345,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     window.removeEventListener('focus', handleCancel);
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
+                        setIsImportingSettings(true); // Set loading state only when file is selected
                         try {
                             let text = await file.text();
                             // Strip UTF-8 BOM if present
@@ -379,8 +370,6 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                         } finally {
                             setIsImportingSettings(false);
                         }
-                    } else {
-                        setIsImportingSettings(false);
                     }
                 };
 
