@@ -203,6 +203,18 @@ export interface Translations {
         saving: string;
         saved: string;
         reset: string;
+        dataManagement: string;
+        dataManagementDesc: string;
+        exportRecipes: string;
+        allRecipes: string;
+        foodRecipes: string;
+        drinkRecipes: string;
+        exportJson: string;
+        exporting: string;
+        importRecipesTitle: string;
+        importDesc: string;
+        importJson: string;
+        importing: string;
     };
     // Common
     common: {
@@ -476,6 +488,18 @@ export const translations: Record<Language, Translations> = {
             saving: 'Saving...',
             saved: 'Settings saved successfully',
             reset: 'Reset to Defaults',
+            dataManagement: 'Data Management',
+            dataManagementDesc: 'Export your recipes to backup them or import recipes from a JSON file.',
+            exportRecipes: 'Export Recipes',
+            allRecipes: 'All Recipes',
+            foodRecipes: 'Food Only',
+            drinkRecipes: 'Drinks Only',
+            exportJson: 'Export to JSON',
+            exporting: 'Exporting...',
+            importRecipesTitle: 'Import Recipes',
+            importDesc: 'Import recipes from a previously exported JSON file.',
+            importJson: 'Import from JSON',
+            importing: 'Importing...',
         },
         common: {
             loading: 'Loading...',
@@ -742,6 +766,18 @@ export const translations: Record<Language, Translations> = {
             saving: 'Salvataggio...',
             saved: 'Impostazioni salvate con successo',
             reset: 'Ripristina Predefiniti',
+            dataManagement: 'Gestione Dati',
+            dataManagementDesc: 'Esporta le tue ricette per il backup o importa da un file JSON.',
+            exportRecipes: 'Esporta Ricette',
+            allRecipes: 'Tutte le Ricette',
+            foodRecipes: 'Solo Cibo',
+            drinkRecipes: 'Solo Bevande',
+            exportJson: 'Esporta in JSON',
+            exporting: 'Esportazione...',
+            importRecipesTitle: 'Importa Ricette',
+            importDesc: 'Importa ricette da un file JSON precedentemente esportato.',
+            importJson: 'Importa da JSON',
+            importing: 'Importazione...',
         },
         common: {
             loading: 'Caricamento...',

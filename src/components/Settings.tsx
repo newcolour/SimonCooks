@@ -638,15 +638,15 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                 <section className="settings-section">
                     <h2>
                         <Database size={20} />
-                        Data Management
+                        {t.settings.dataManagement}
                     </h2>
                     <p className="section-description">
-                        Export your recipes to backup them or import recipes from a JSON file.
+                        {t.settings.dataManagementDesc}
                     </p>
 
                     <div className="data-management-grid">
                         <div className="export-section">
-                            <h3>Export Recipes</h3>
+                            <h3>{t.settings.exportRecipes}</h3>
                             <div className="radio-group">
                                 <label className="radio-label">
                                     <input
@@ -656,7 +656,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                         checked={exportType === 'all'}
                                         onChange={(e) => setExportType(e.target.value as any)}
                                     />
-                                    All Recipes
+                                    {t.settings.allRecipes}
                                 </label>
                                 <label className="radio-label">
                                     <input
@@ -666,7 +666,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                         checked={exportType === 'food'}
                                         onChange={(e) => setExportType(e.target.value as any)}
                                     />
-                                    Food Only
+                                    {t.settings.foodRecipes}
                                 </label>
                                 <label className="radio-label">
                                     <input
@@ -676,7 +676,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                         checked={exportType === 'drink'}
                                         onChange={(e) => setExportType(e.target.value as any)}
                                     />
-                                    Drinks Only
+                                    {t.settings.drinkRecipes}
                                 </label>
                             </div>
                             <button
@@ -685,14 +685,14 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                 disabled={isExporting}
                             >
                                 <Download size={18} />
-                                {isExporting ? "Exporting..." : "Export to JSON"}
+                                {isExporting ? t.settings.exporting : t.settings.exportJson}
                             </button>
                         </div>
 
                         <div className="import-section">
-                            <h3>Import Recipes</h3>
+                            <h3>{t.settings.importRecipesTitle}</h3>
                             <p className="description-text">
-                                Import recipes from a previously exported JSON file. Existing recipes with the same ID will be updated.
+                                {t.settings.importDesc}
                             </p>
                             <button
                                 className="action-btn import-btn"
@@ -700,7 +700,7 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                 disabled={isImporting}
                             >
                                 <Upload size={18} />
-                                {isImporting ? "Importing..." : "Import from JSON"}
+                                {isImporting ? t.settings.importing : t.settings.importJson}
                             </button>
                         </div>
                     </div>
