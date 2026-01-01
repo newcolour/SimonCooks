@@ -36,6 +36,30 @@ interface RecipeMatch {
     missingIngredients: string[];
 }
 
+// Helper to resize image
+const resizeImage = (base64Str: string, maxWidth: number = 800): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = `data:image/jpeg;base64,${base64Str}`;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl.split(',')[1]);
+        };
+        img.onerror = () => resolve(base64Str); // Fallback
+    });
+};
+
 export function Fridge({
     recipes,
     aiSettings,
@@ -157,12 +181,14 @@ export function Fridge({
             });
             reader.readAsDataURL(file);
 
-            const base64String = await base64Promise;
+            const originalBase64 = await base64Promise;
+            // Resize to prevent large payload timeout
+            const resizedBase64 = await resizeImage(originalBase64);
 
             // Analyze the image with AI
             const result = await analyzeFridgeImage(
                 aiSettings,
-                base64String,
+                resizedBase64,
                 language
             );
 
