@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { X, ArrowRight, Check, AlertTriangle } from 'lucide-react';
 import type { Recipe } from '../types';
 import './ValidationConfirmModal.css';
