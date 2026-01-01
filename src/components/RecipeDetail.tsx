@@ -8,6 +8,7 @@ import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutr
 import type { WinePairingSuggestion, WinePairing } from '../services/aiService';
 import { FlavorChart } from './FlavorChart';
 import { RemixModal } from './RemixModal';
+import { ValidationConfirmModal } from './ValidationConfirmModal';
 import { CookingMode } from './CookingMode';
 import {
     Clock,
@@ -56,6 +57,7 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     const [generatingImage, setGeneratingImage] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
     const [showRemixModal, setShowRemixModal] = useState(false);
+    const [validationSuggestion, setValidationSuggestion] = useState<Recipe | null>(null);
     const [imageError, setImageError] = useState<string | null>(null);
     const [adjustedServings, setAdjustedServings] = useState<number>(recipe?.servings || 4);
     const [winePairing, setWinePairing] = useState<WinePairingSuggestion | null>(null);
@@ -260,7 +262,20 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
         setIsValidating(true);
         try {
             const validated = await validateDrinkRecipe(aiSettings, activeRecipe, language);
-            await onUpdateRecipe(validated as Recipe);
+            const validatedRecipe = validated as Recipe;
+
+            // Check for changes (focused on servings and ingredients)
+            const hasChanges = validatedRecipe.servings !== activeRecipe.servings ||
+                JSON.stringify(validatedRecipe.ingredients) !== JSON.stringify(activeRecipe.ingredients);
+
+            if (hasChanges) {
+                setValidationSuggestion(validatedRecipe);
+            } else {
+                // Optional: Toast or Alert
+                console.log('No validation changes needed');
+                // You could add a toast here if you have a toast system
+                // alert(language === 'it' ? 'Nessuna modifica suggerita' : 'No changes suggested');
+            }
         } catch (e) {
             console.error("Validation failed", e);
         } finally {
@@ -475,6 +490,21 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                     onSave={onSaveNewRecipe}
                 />
             )}
+
+
+            {validationSuggestion && activeRecipe && onUpdateRecipe && (
+                <ValidationConfirmModal
+                    original={activeRecipe}
+                    suggested={validationSuggestion}
+                    onConfirm={async () => {
+                        await onUpdateRecipe(validationSuggestion);
+                        setValidationSuggestion(null);
+                    }}
+                    onCancel={() => setValidationSuggestion(null)}
+                    language={language}
+                />
+            )}
+
             {/* Header */}
             <div className="recipe-detail-header">
                 <button className="close-btn" onClick={onClose} title={t.common.close}>
