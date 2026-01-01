@@ -91,6 +91,86 @@ export async function fetchOllamaModels(endpoint: string = 'http://localhost:114
     }
 }
 
+// Analyze fridge image using multimodal Ollama model (Android only)
+export async function analyzeFridgeImage(
+    settings: AISettings,
+    imageBase64: string,
+    language: string = 'en'
+): Promise<{ ingredients: string[], debug: string }> {
+    if (settings.provider !== 'ollama') {
+        throw new Error('Fridge image analysis requires Ollama with a multimodal model');
+    }
+
+    const endpoint = settings.ollamaEndpoint || 'http://localhost:11434';
+    // Use the configured model or default to gemma3:12b for multimodal
+    const model = settings.ollamaModel || 'gemma3:12b';
+
+    // Simplified prompt for better reliability
+    const systemPrompt = language === 'it'
+        ? `Analizza questa immagine. Elenca SOLO gli ingredienti alimentari visibili in un array JSON.`
+        : `Analyze this image. List ONLY visible food ingredients in a JSON array.`;
+
+    try {
+        console.log(`Analyzing image with model: ${model} at ${endpoint}`);
+
+        const response = await fetch(`${endpoint}/api/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: model,
+                prompt: systemPrompt,
+                images: [imageBase64], // Ollama multimodal format
+                stream: false,
+                format: "json"
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Ollama API error:', errorText);
+            throw new Error(`Failed to analyze image (Status ${response.status}): ${errorText.substring(0, 100)}`);
+        }
+
+        const data = await response.json();
+        const responseText = data.response;
+
+        console.log('Raw AI Response:', responseText);
+
+        // Parse the JSON array from the response
+        try {
+            // Try to extract JSON array from response
+            const jsonMatch = responseText.match(/\[[\s\S]*?\]/);
+            if (jsonMatch) {
+                const ingredients = JSON.parse(jsonMatch[0]);
+                if (Array.isArray(ingredients)) {
+                    return {
+                        ingredients: ingredients.map((ing: string) => ing.toLowerCase().trim()),
+                        debug: `Model: ${model}\nResponse: ${responseText}`
+                    };
+                }
+            }
+
+            // If we got here, we found a match but it wasn't an array, or no match
+            return {
+                ingredients: [],
+                debug: `Model: ${model}\nRaw Response (Parse Failed): ${responseText}`
+            };
+
+        } catch (parseError) {
+            console.error('Error parsing ingredients:', parseError);
+            return {
+                ingredients: [],
+                debug: `Model: ${model}\nParse Error: ${parseError}\nRaw Response: ${responseText}`
+            };
+        }
+    } catch (error) {
+        console.error('Error analyzing fridge image:', error);
+        throw error;
+    }
+}
+
 export interface SuggestedRecipe {
     title: string;
     description: string;
@@ -1212,13 +1292,26 @@ Appetizing, authentic texture. No text.`;
                 });
             }
 
-            // Fallback for browser dev mode (will likely fail with CORS)
-            const accountId = settings.cloudflareAccountId;
-            const apiToken = settings.cloudflareApiToken;
-            const modelId = settings.imageModel || '@cf/black-forest-labs/flux-1-schnell';
+            // Fallback for browser/mobile (direct API call)
+            const accountId = settings.cloudflareAccountId?.trim();
+            const apiToken = settings.cloudflareApiToken?.trim();
+
+            // Fix: Ensure we use a valid Cloudflare model. If the user switched from Gemini/OpenAI, 
+            // the model ID might be wrong (e.g. 'dall-e-3' or 'gemini-2.0').
+            let modelId = (settings.imageModel || '').trim();
+            if (!modelId.startsWith('@cf/')) {
+                console.warn('Invalid Cloudflare model ID detected:', modelId, 'Reverting to default Flux.');
+                modelId = '@cf/black-forest-labs/flux-1-schnell';
+            }
+
+            if (!accountId) throw new Error('Cloudflare Account ID is missing. Please check Settings.');
+            if (!apiToken) throw new Error('Cloudflare API Token is missing. Please check Settings.');
+
+            const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`;
+            console.log('Attempting verify Cloudflare URL:', url);
 
             const response = await fetch(
-                `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`,
+                url,
                 {
                     method: 'POST',
                     headers: {
@@ -1234,7 +1327,8 @@ Appetizing, authentic texture. No text.`;
 
             if (!response.ok) {
                 const errText = await response.text();
-                throw new Error(`Cloudflare Error: ${response.status} ${errText}`);
+                // Include the URL in the error to verify what is actually being called
+                throw new Error(`Cloudflare Error (${response.status}) at ${url}: ${errText}`);
             }
 
             const data = await response.json();
