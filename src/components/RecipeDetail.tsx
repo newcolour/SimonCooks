@@ -268,11 +268,7 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
         }
     };
 
-    const handleSwipeRight = () => {
-        if (window.confirm(`${t.recipe.deleteConfirm} "${recipe.title}"?`)) {
-            onDelete();
-        }
-    };
+
 
     const handleDelete = () => {
         if (window.confirm(`${t.recipe.deleteConfirm} "${recipe.title}"?`)) {
