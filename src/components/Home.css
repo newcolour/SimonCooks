@@ -231,3 +231,14 @@
         flex-direction: row;
     }
 }
+
+@media (max-width: 600px) {
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .hero-btn {
+        width: 100%;
+    }
+}
