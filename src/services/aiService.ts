@@ -106,10 +106,24 @@ export async function analyzeFridgeImage(
     // Use the configured model or default to gemma3:12b for multimodal
     const model = settings.ollamaModel || 'gemma3:12b';
 
-    // Simplified prompt for better reliability
+    // Strict anti-hallucination prompt
     const systemPrompt = language === 'it'
-        ? `Analizza questa immagine. Elenca SOLO gli ingredienti alimentari visibili in un array JSON.`
-        : `Analyze this image. List ONLY visible food ingredients in a JSON array.`;
+        ? `Sei un assistente che analizza foto di frigo/dispensa. REGOLE RIGOROSE:
+1. Elenca SOLO ingredienti che puoi CHIARAMENTE VEDERE nell'immagine
+2. NON indovinare, NON inferire, NON assumere nulla
+3. Se non sei sicuro al 100%, NON includerlo
+4. Restituisci un array JSON di stringhe
+5. Se non vedi NESSUN ingrediente, restituisci []
+
+Esempio: ["pomodori", "latte", "uova"]`
+        : `You are an assistant analyzing fridge/pantry photos. STRICT RULES:
+1. List ONLY ingredients you can CLEARLY SEE in the image
+2. Do NOT guess, do NOT infer, do NOT assume anything
+3. If you are not 100% certain, do NOT include it
+4. Return a JSON array of strings
+5. If you see NO food ingredients, return []
+
+Example: ["tomatoes", "milk", "eggs"]`;
 
     try {
         console.log(`Analyzing image with model: ${model} at ${endpoint}`);
@@ -124,7 +138,12 @@ export async function analyzeFridgeImage(
                 prompt: systemPrompt,
                 images: [imageBase64], // Ollama multimodal format
                 stream: false,
-                format: "json"
+                format: "json",
+                options: {
+                    temperature: 0.1,  // Very low temperature to reduce creativity/hallucination
+                    top_p: 0.9,
+                    num_predict: 100   // Limit response length
+                }
             }),
         });
 
