@@ -52,7 +52,8 @@ export function Fridge({
     const t = getTranslation(language);
 
     const isMobile = Capacitor.isNativePlatform();
-    const canUseCamera = isMobile && aiSettings.provider === 'ollama';
+    // Enable camera for all mobile users. If Ollama isn't configured, aiService will throw a clear error.
+    const canUseCamera = isMobile;
 
     const handleAddIngredient = () => {
         if (inputValue.trim() && !ingredients.includes(inputValue.trim().toLowerCase())) {

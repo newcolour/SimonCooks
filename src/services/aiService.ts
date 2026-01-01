@@ -97,11 +97,12 @@ export async function analyzeFridgeImage(
     imageBase64: string,
     language: string = 'en'
 ): Promise<{ ingredients: string[], debug: string }> {
-    if (settings.provider !== 'ollama') {
-        throw new Error('Fridge image analysis requires Ollama with a multimodal model');
-    }
-
+    // We allow trying even if provider is not 'ollama', assuming the user has an Ollama instance accessible.
+    // This supports 'Hybrid' setups (e.g. Gemini for Text, Ollama for Vision).
     const endpoint = settings.ollamaEndpoint || 'http://localhost:11434';
+
+    // On Android, localhost won't work unless running on device. 
+    // We proceed and let the fetch fail if unreachable.
     // Use the configured model or default to gemma3:12b for multimodal
     const model = settings.ollamaModel || 'gemma3:12b';
 
