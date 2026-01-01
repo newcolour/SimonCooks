@@ -1,0 +1,13 @@
+{
+    "ai": {
+        "provider": "gemini",
+        "apiKey": "test-api-key-from-adb",
+        "ollamaEndpoint": "http://localhost:11434",
+        "ollamaModel": "llama3.2",
+        "imageProvider": "openai",
+        "imageApiKey": "test-image-key"
+    },
+    "theme": "ocean",
+    "language": "en",
+    "tourCompleted": true
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { ShoppingItem, AISettings } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
@@ -14,6 +15,11 @@ import {
     Sparkles
 } from 'lucide-react';
 import './ShoppingList.css';
+import { get, set } from 'idb-keyval';
+
+// ... imports
+
+const SHOPPING_STORAGE_KEY = 'simoncooks_shopping';
 
 interface ShoppingListProps {
     aiSettings: AISettings;
@@ -30,9 +36,18 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
     const t = getTranslation(language);
 
     const loadItems = useCallback(async () => {
-        if (window.electronAPI?.shoppingList) {
-            const data = await window.electronAPI.shoppingList.getAll();
-            setItems(data);
+        try {
+            if (window.electronAPI?.shoppingList) {
+                const data = await window.electronAPI.shoppingList.getAll();
+                setItems(data);
+            } else {
+                // Mobile/Web Fallback
+                const stored = await get<ShoppingItem[]>(SHOPPING_STORAGE_KEY);
+                if (stored) setItems(stored);
+            }
+        } catch (error) {
+            console.error('Failed to load shopping list:', error);
+        } finally {
             setLoading(false);
         }
     }, []);
@@ -41,26 +56,52 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
         loadItems();
     }, [loadItems]);
 
+    const saveToStorage = async (newItems: ShoppingItem[]) => {
+        if (!window.electronAPI?.shoppingList) {
+            await set(SHOPPING_STORAGE_KEY, newItems);
+        }
+    };
+
     const handleToggleChecked = async (item: ShoppingItem) => {
         const updated = { ...item, checked: !item.checked };
-        await window.electronAPI.shoppingList.updateItem(updated);
-        setItems(prev => prev.map(i => i.id === item.id ? updated : i));
+
+        if (window.electronAPI?.shoppingList) {
+            await window.electronAPI.shoppingList.updateItem(updated);
+        }
+
+        const newItems = items.map(i => i.id === item.id ? updated : i);
+        setItems(newItems);
+        await saveToStorage(newItems);
     };
 
     const handleDeleteItem = async (id: string) => {
-        await window.electronAPI.shoppingList.deleteItem(id);
-        setItems(prev => prev.filter(i => i.id !== id));
+        if (window.electronAPI?.shoppingList) {
+            await window.electronAPI.shoppingList.deleteItem(id);
+        }
+
+        const newItems = items.filter(i => i.id !== id);
+        setItems(newItems);
+        await saveToStorage(newItems);
     };
 
     const handleClearChecked = async () => {
-        await window.electronAPI.shoppingList.clearChecked();
-        setItems(prev => prev.filter(i => !i.checked));
+        if (window.electronAPI?.shoppingList) {
+            await window.electronAPI.shoppingList.clearChecked();
+        }
+
+        const newItems = items.filter(i => !i.checked);
+        setItems(newItems);
+        await saveToStorage(newItems);
     };
 
     const handleClearAll = async () => {
         if (window.confirm(t.shopping?.clearAllConfirm || 'Clear entire shopping list?')) {
-            await window.electronAPI.shoppingList.clearAll();
+            if (window.electronAPI?.shoppingList) {
+                await window.electronAPI.shoppingList.clearAll();
+            }
+
             setItems([]);
+            await saveToStorage([]);
         }
     };
 
@@ -70,34 +111,37 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
         setAdding(true);
         try {
             const hasAI = aiSettings.apiKey || aiSettings.provider === 'ollama';
+            let newItemsList: ShoppingItem[] = [];
 
             if (hasAI && items.length > 0) {
                 // Use AI to merge
                 const newIngredients = [{ name: newItemName, amount: newItemAmount, unit: newItemUnit }];
                 try {
                     const merged = await mergeShoppingList(aiSettings, items, newIngredients);
-                    const newItems: ShoppingItem[] = merged.map(m => ({
+                    newItemsList = merged.map(m => ({
                         id: crypto.randomUUID(),
                         name: m.name,
                         amount: m.amount,
                         unit: m.unit,
                         checked: m.checked
                     }));
-                    await window.electronAPI.shoppingList.replaceAll(newItems);
-                    setItems(newItems);
                 } catch {
                     // Fallback to simple merge
                     const merged = simpleShoppingMerge(items, newIngredients);
-                    const newItems: ShoppingItem[] = merged.map(m => ({
+                    newItemsList = merged.map(m => ({
                         id: crypto.randomUUID(),
                         name: m.name,
                         amount: m.amount,
                         unit: m.unit,
                         checked: m.checked
                     }));
-                    await window.electronAPI.shoppingList.replaceAll(newItems);
-                    setItems(newItems);
                 }
+
+                if (window.electronAPI?.shoppingList) {
+                    await window.electronAPI.shoppingList.replaceAll(newItemsList);
+                }
+                setItems(newItemsList);
+                await saveToStorage(newItemsList);
             } else {
                 // Simple add
                 const newItem: ShoppingItem = {
@@ -107,8 +151,14 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
                     unit: newItemUnit,
                     checked: false
                 };
-                await window.electronAPI.shoppingList.addItem(newItem);
-                setItems(prev => [newItem, ...prev]);
+
+                if (window.electronAPI?.shoppingList) {
+                    await window.electronAPI.shoppingList.addItem(newItem);
+                }
+
+                newItemsList = [newItem, ...items];
+                setItems(newItemsList);
+                await saveToStorage(newItemsList);
             }
 
             setNewItemName('');
@@ -138,8 +188,12 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
         );
     }
 
+
+
+    const isMobile = Capacitor.isNativePlatform();
+
     return (
-        <div className="shopping-list">
+        <div className={`shopping-list ${isMobile ? 'mobile' : ''}`}>
             <div className="shopping-header">
                 <div className="shopping-title">
                     <ShoppingCart size={28} />
@@ -153,13 +207,17 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
             <div className="shopping-content">
                 {/* Add New Item */}
                 <div className="add-item-section">
-                    <div className="add-item-row">
+                    <div
+                        className="add-item-row"
+                        style={isMobile ? { display: 'flex', flexWrap: 'nowrap', gap: '6px', alignItems: 'center' } : undefined}
+                    >
                         <input
                             type="text"
                             value={newItemAmount}
                             onChange={(e) => setNewItemAmount(e.target.value)}
                             placeholder={t.recipe?.amount || 'Qty'}
                             className="amount-input"
+                            style={isMobile ? { width: '50px', minWidth: '50px', flexShrink: 0, padding: '0.6rem 0.4rem', border: '1px solid rgba(255,255,255,0.2)' } : undefined}
                         />
                         <input
                             type="text"
@@ -167,19 +225,22 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
                             onChange={(e) => setNewItemUnit(e.target.value)}
                             placeholder={t.recipe?.unit || 'Unit'}
                             className="unit-input"
+                            style={isMobile ? { width: '60px', minWidth: '60px', flexShrink: 0, padding: '0.6rem 0.4rem', border: '1px solid rgba(255,255,255,0.2)' } : undefined}
                         />
                         <input
                             type="text"
                             value={newItemName}
                             onChange={(e) => setNewItemName(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={t.shopping?.addPlaceholder || 'Add item...'}
+                            placeholder={t.shopping?.addPlaceholder || 'Item'}
                             className="name-input"
+                            style={isMobile ? { flex: 1, minWidth: '60px', padding: '0.6rem 0.4rem', border: '1px solid rgba(255,255,255,0.2)' } : undefined}
                         />
                         <button
                             onClick={handleAddItem}
                             disabled={adding || !newItemName.trim()}
                             className="add-btn"
+                            style={isMobile ? { width: '38px', height: '38px', minWidth: '38px', flexShrink: 0 } : undefined}
                         >
                             {adding ? <Loader size={18} className="animate-spin" /> : <Plus size={18} />}
                         </button>
@@ -194,16 +255,44 @@ export function ShoppingList({ aiSettings, language }: ShoppingListProps) {
 
                 {/* Progress */}
                 {totalCount > 0 && (
-                    <div className="shopping-progress">
-                        <div className="progress-bar">
-                            <div
-                                className="progress-fill"
-                                style={{ width: `${(checkedCount / totalCount) * 100}%` }}
-                            />
-                        </div>
-                        <span className="progress-text">
-                            {checkedCount}/{totalCount} {t.shopping?.itemsChecked || 'checked'}
-                        </span>
+                    <div
+                        className="shopping-progress"
+                        style={isMobile ? {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'stretch',
+                            gap: '6px',
+                            width: '100%'
+                        } : undefined}
+                    >
+                        {isMobile ? (
+                            <>
+                                <span
+                                    className="progress-text"
+                                    style={{ fontSize: '0.85rem', textAlign: 'left' }}
+                                >
+                                    {checkedCount}/{totalCount} {t.shopping?.itemsChecked || 'checked'}
+                                </span>
+                                <div className="progress-bar" style={{ width: '100%' }}>
+                                    <div
+                                        className="progress-fill"
+                                        style={{ width: `${(checkedCount / totalCount) * 100}%` }}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="progress-bar">
+                                    <div
+                                        className="progress-fill"
+                                        style={{ width: `${(checkedCount / totalCount) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="progress-text">
+                                    {checkedCount}/{totalCount} {t.shopping?.itemsChecked || 'checked'}
+                                </span>
+                            </>
+                        )}
                     </div>
                 )}
 

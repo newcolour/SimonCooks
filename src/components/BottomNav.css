@@ -1,15 +1,19 @@
 .bottom-nav {
-    display: none;
+    display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
+    /* Taller to accommodate labels + safe area */
+    min-height: 80px;
+    height: calc(80px + env(safe-area-inset-bottom, 20px));
     background: var(--color-bg-secondary);
     border-top: 1px solid var(--color-border);
     justify-content: space-around;
-    align-items: center;
-    padding-bottom: env(safe-area-inset-bottom);
+    align-items: flex-start;
+    /* Align to top so content doesn't overlap with gesture bar */
+    padding-top: 8px;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
     z-index: 1000;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -20,23 +24,32 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 4px;
-    height: 100%;
-    color: var(--color-text-secondary);
+    /* Use text-primary for maximum contrast in all themes */
+    color: var(--color-text-primary);
     background: transparent;
     border: none;
-    padding: 4px 0;
-    padding-bottom: calc(4px + env(safe-area-inset-bottom));
-    transition: color 0.2s ease;
+    padding: 0;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    /* Reduce opacity when not active for visual hierarchy */
+    opacity: 0.6;
 }
 
 .bottom-nav-item.active {
     color: var(--color-accent-primary);
+    opacity: 1;
 }
 
 .bottom-nav-item svg {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    stroke-width: 2px;
     transition: transform 0.2s ease;
+    stroke: currentColor;
+    fill: none;
 }
 
 .bottom-nav-item.active svg {
@@ -44,13 +57,20 @@
 }
 
 .nav-label {
-    font-size: 10px;
-    font-weight: 500;
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
+    text-align: center;
+    color: inherit;
+    /* Ensure visibility */
+    opacity: 1;
+    visibility: visible;
 }
 
-@media (max-width: 768px) {
+@media (min-width: 1024px) {
     .bottom-nav {
-        display: flex;
+        display: none;
     }
 }

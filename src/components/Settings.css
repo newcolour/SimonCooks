@@ -551,3 +551,27 @@
     border-color: var(--color-text-primary);
     background: var(--color-bg-hover);
 }
+
+.settings-export-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.label-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+@media (min-width: 600px) {
+    .settings-export-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .settings-export-row .action-btn {
+        width: auto;
+        min-width: 180px;
+    }
+}

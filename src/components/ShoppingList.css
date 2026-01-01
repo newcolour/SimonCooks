@@ -58,19 +58,22 @@
 
 .add-item-row {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 .add-item-row input {
     background: var(--bg-secondary);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    padding: 0.85rem 1rem;
+    padding: 0.75rem 0.5rem;
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+    /* Allow shrinking */
 }
 
 .add-item-row input:focus {
@@ -82,23 +85,27 @@
 
 .add-item-row input::placeholder {
     color: var(--text-tertiary);
-    /* Lighter placeholder */
     opacity: 0.7;
 }
 
 .add-item-row .amount-input {
-    width: 80px;
+    width: 55px;
+    min-width: 55px;
+    flex-shrink: 0;
     text-align: center;
     font-weight: 500;
 }
 
 .add-item-row .unit-input {
-    width: 90px;
+    width: 65px;
+    min-width: 65px;
+    flex-shrink: 0;
 }
 
 .add-item-row .name-input {
     flex: 1;
     font-weight: 500;
+    min-width: 60px;
 }
 
 .add-item-row .add-btn {
@@ -106,8 +113,10 @@
     color: var(--color-text-inverse);
     border: none;
     border-radius: 10px;
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    flex-shrink: 0;
     padding: 0;
     cursor: pointer;
     display: flex;
@@ -382,17 +391,115 @@
     }
 
     .add-item-row {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        gap: 6px;
     }
 
-    .add-item-row .amount-input,
+    .add-item-row input {
+        padding: 0.6rem 0.5rem;
+        font-size: 0.85rem;
+        border: 1px solid var(--color-border);
+        /* Visible contour */
+    }
+
+    .add-item-row .amount-input {
+        width: 50px;
+        min-width: 50px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
     .add-item-row .unit-input {
-        width: calc(50% - 0.25rem);
+        width: 60px;
+        min-width: 60px;
+        padding-left: 4px;
+        padding-right: 4px;
     }
 
     .add-item-row .name-input {
-        width: 100%;
-        order: -1;
-        margin-bottom: 0.5rem;
+        width: auto;
+        order: 0;
+        margin-bottom: 0;
+        flex: 1;
+        min-width: 80px;
     }
+
+    .add-item-row .add-btn {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        flex-shrink: 0;
+        /* Prevent button from disappearing */
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .shopping-progress {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .progress-text {
+        text-align: right;
+        font-size: 0.8rem;
+    }
+}
+
+/* Force Mobile App Styles */
+.shopping-list.mobile .add-item-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+.shopping-list.mobile .add-item-row input {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+}
+
+.shopping-list.mobile .amount-input {
+    width: 50px;
+    min-width: 50px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.shopping-list.mobile .unit-input {
+    width: 60px;
+    min-width: 60px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.shopping-list.mobile .name-input {
+    width: auto;
+    flex: 1;
+    margin-bottom: 0;
+    order: 0;
+    min-width: 60px;
+}
+
+.shopping-list.mobile .add-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    flex-shrink: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shopping-list.mobile .shopping-progress {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.shopping-list.mobile .progress-text {
+    text-align: right;
+    font-size: 0.8rem;
 }

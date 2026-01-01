@@ -38,12 +38,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: 8px 12px;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-secondary);
     position: sticky;
     top: 0;
     z-index: 10;
+    min-width: 0;
+    /* Allow flex shrinking */
 }
 
 .close-btn {
@@ -64,75 +66,71 @@
 
 .recipe-detail-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--spacing-xs);
+    flex-wrap: nowrap;
     align-items: center;
+    min-width: 0;
+    /* Allow flex shrinking */
 }
 
 .action-btn {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
+    justify-content: center;
+    padding: 6px;
     border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+    font-size: 12px;
     font-weight: 500;
     transition: all var(--transition-fast);
-    white-space: nowrap;
-    flex-shrink: 0;
+    height: 32px;
+    width: 32px;
+    /* Fixed square size for icons */
+    min-width: 32px;
     position: relative;
+    /* For tooltip positioning */
 }
 
-/* Non-tooltip buttons: always show label inline */
-.action-btn:not(.tooltip-btn) .action-label {
-    display: inline;
-}
-
-/* Tooltip buttons: icon only, label as popup on hover */
-.tooltip-btn {
-    padding: var(--spacing-sm);
-}
-
-.tooltip-btn .action-label {
-    display: block;
-    visibility: hidden;
+/* Hide text by default (it will be a tooltip) */
+.action-btn span {
     position: absolute;
-    top: calc(100% + 8px);
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
+    margin-top: 8px;
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
+    white-space: nowrap;
     opacity: 0;
-    transition: opacity 0.15s ease-in-out;
-    pointer-events: none;
-    z-index: 1000;
-    box-shadow: var(--shadow-md);
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border: 1px solid var(--color-border);
+    pointer-events: none;
 }
 
-.tooltip-btn:hover .action-label {
-    visibility: visible;
+/* Show tooltip on hover */
+.action-btn:hover span {
     opacity: 1;
+    visibility: visible;
+    margin-top: 4px;
 }
 
-/* Ensure icon stays visible in tooltip buttons */
-.tooltip-btn svg {
+/* Ensure no gaps that look weird */
+.action-btn svg {
+    width: 18px;
+    height: 18px;
     position: relative;
-    z-index: 1;
+    /* Ensure icon stays above background/other elements */
+    z-index: 10;
+    pointer-events: none;
 }
 
-/* Hide all labels on very small screens */
-@media (max-width: 600px) {
-    .action-label {
-        display: none !important;
-    }
-
-    .action-btn {
-        padding: var(--spacing-sm);
-    }
-}
+/* Special Case: Start Cooking can be slightly distinct if desired, but user asked for "same icons as mobile" */
+/* So we keep it icon-only too */
 
 .action-btn.edit {
     background: var(--color-bg-tertiary);
@@ -1270,4 +1268,129 @@
     }
 
     /* Ensure content text has room if needed, but wrap will handle it */
+}
+
+/* Mobile Platform Layout for Recipe Detail - only applies on Android/iOS */
+body.mobile-platform .recipe-detail {
+    position: relative;
+}
+
+body.mobile-platform .recipe-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top, 24px));
+    /* Adjust for status bar */
+    background: var(--color-bg-primary);
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow: visible;
+}
+
+/* Make close button look like a back button */
+body.mobile-platform .close-btn {
+    width: auto;
+    height: 32px;
+    padding: 0 12px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+body.mobile-platform .close-btn::before {
+    content: '← Back';
+}
+
+/* Hide the X icon on mobile, show text instead */
+body.mobile-platform .close-btn svg {
+    display: none;
+}
+
+/* Hide fullscreen button on mobile - already fullscreen */
+body.mobile-platform .action-btn.toggle-focus {
+    display: none !important;
+}
+
+/* Actions row - compact horizontal icons */
+body.mobile-platform .recipe-detail-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    overflow: visible;
+}
+
+/* All action buttons become compact icon-only buttons */
+body.mobile-platform .action-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--color-bg-tertiary);
+}
+
+body.mobile-platform .action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Hide all labels on mobile */
+body.mobile-platform .action-btn .action-label {
+    display: none !important;
+}
+
+/* Reset specific button styles for mobile */
+body.mobile-platform .action-btn.start-cooking {
+    background: var(--color-accent-primary);
+}
+
+body.mobile-platform .action-btn.delete {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+body.mobile-platform .action-btn.translate,
+body.mobile-platform .action-btn.edit,
+body.mobile-platform .action-btn.shopping,
+body.mobile-platform .action-btn.remix {
+    background: var(--color-bg-tertiary);
+}
+
+body.mobile-platform .recipe-hero {
+    height: 200px;
+}
+
+body.mobile-platform .recipe-info {
+    padding: var(--spacing-md);
+}
+
+body.mobile-platform .recipe-title {
+    font-size: var(--font-size-2xl);
+}
+
+body.mobile-platform .recipe-meta {
+    flex-wrap: wrap;
+}
+
+body.mobile-platform .meta-card {
+    min-width: 80px;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+body.mobile-platform .recipe-section {
+    padding: 0 var(--spacing-md) var(--spacing-lg);
+}
+
+body.mobile-platform .back-to-top-btn {
+    bottom: calc(100px + env(safe-area-inset-bottom, 20px));
 }

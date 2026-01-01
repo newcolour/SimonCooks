@@ -159,21 +159,41 @@
   }
 }
 
-/* Mobile Layout (< 768px) */
-@media (max-width: 768px) {
-  .app-main {
-    margin-left: 0;
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
-  }
+/* Mobile Platform Layout - only applies on Android/iOS via .mobile-platform class */
+body.mobile-platform .app-main {
+  margin-left: 0;
+  /* Accommodate bottom nav */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+}
 
-  /* On mobile, when a panel (detail/editor) is open, hide the main list */
-  .main-content.with-panel {
-    display: none;
-  }
+/* Full width for the main content when no panel is open */
+body.mobile-platform .main-content {
+  flex: 1;
+  width: 100%;
+}
 
-  .right-panel {
-    flex: 1;
-    border-left: none;
-    width: 100%;
-  }
+/* On mobile, when a panel (detail/editor) is open, hide the main list completely */
+body.mobile-platform .main-content.with-panel {
+  display: none !important;
+  flex: 0 !important;
+  width: 0 !important;
+  overflow: hidden;
+}
+
+body.mobile-platform .right-panel {
+  flex: 1;
+  border-left: none;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+  z-index: 100;
+  background: var(--color-bg-primary);
+}
+
+/* Hide the empty "Select a recipe" panel on mobile */
+body.mobile-platform .right-panel.panel-empty {
+  display: none !important;
 }

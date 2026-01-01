@@ -132,6 +132,8 @@ export interface ElectronAPI {
         get: (key: string) => Promise<unknown>;
         set: (key: string, value: unknown) => Promise<boolean>;
         getAll: () => Promise<Record<string, unknown>>;
+        export: () => Promise<{ success: boolean; cancelled?: boolean }>;
+        import: () => Promise<{ success: boolean; cancelled?: boolean }>;
     };
     shoppingList: {
         getAll: () => Promise<ShoppingItem[]>;

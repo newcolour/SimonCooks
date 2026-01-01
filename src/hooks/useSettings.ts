@@ -22,6 +22,7 @@ interface UseSettingsReturn {
     updateTheme: (theme: AppSettings['theme']) => Promise<void>;
     updateLanguage: (language: AppSettings['language']) => Promise<void>;
     resetSettings: () => Promise<void>;
+    importSettings: (newSettings?: Partial<AppSettings>) => Promise<void>;
 }
 
 export function useSettings(): UseSettingsReturn {
@@ -71,6 +72,7 @@ export function useSettings(): UseSettingsReturn {
                 await window.electronAPI.settings.set('ai', newSettings.ai);
                 await window.electronAPI.settings.set('theme', newSettings.theme);
                 await window.electronAPI.settings.set('language', newSettings.language);
+                await window.electronAPI.settings.set('tourCompleted', newSettings.tourCompleted);
             } else {
                 // Fallback for web development
                 localStorage.setItem('simoncooks_settings', JSON.stringify(newSettings));
@@ -110,6 +112,17 @@ export function useSettings(): UseSettingsReturn {
         await saveSettings(DEFAULT_SETTINGS);
     }, [saveSettings]);
 
+    const importSettings = useCallback(async (newSettings?: Partial<AppSettings>) => {
+        if (newSettings && Object.keys(newSettings).length > 0) {
+            // Web/Manual import
+            const mergedSettings = { ...settings, ...newSettings };
+            await saveSettings(mergedSettings);
+        } else {
+            // Just reload (Electron case)
+            await fetchSettings();
+        }
+    }, [settings, saveSettings, fetchSettings]);
+
     return {
         settings,
         loading,
@@ -118,5 +131,6 @@ export function useSettings(): UseSettingsReturn {
         updateTheme,
         updateLanguage,
         resetSettings,
+        importSettings,
     };
 }

@@ -22,7 +22,7 @@ type PanelType = 'detail' | 'editor' | 'none';
 
 function App() {
   const { recipes, loading, createRecipe, updateRecipe, deleteRecipe, deleteMultipleRecipes, importRecipes } = useRecipes();
-  const { settings, updateAISettings, updateTheme, updateLanguage, resetSettings } = useSettings();
+  const { settings, updateAISettings, updateTheme, updateLanguage, resetSettings, importSettings } = useSettings();
 
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentFilter, setCurrentFilter] = useState<FilterType>('all');
@@ -36,6 +36,20 @@ function App() {
 
   // Tour is visible when settings are loaded, tour hasn't been completed, and user hasn't dismissed it this session
   const showTour = !loading && settings.tourCompleted === false && !tourDismissed;
+
+  // Detect platform - add class for mobile-specific CSS
+  useEffect(() => {
+    const isMobile = !window.electronAPI && (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.())
+    );
+
+    if (isMobile) {
+      document.body.classList.add('mobile-platform');
+    } else {
+      document.body.classList.remove('mobile-platform');
+    }
+  }, []);
 
   // Apply theme to document
   useEffect(() => {
@@ -194,6 +208,7 @@ function App() {
             onReset={resetSettings}
             recipes={recipes}
             onImportRecipes={importRecipes}
+            onImportSettings={importSettings}
           />
         );
       case 'shopping':
@@ -299,7 +314,7 @@ function App() {
           {renderMainContent()}
         </div>
         {currentView === 'recipes' && (
-          <div className={`right-panel ${isFocusMode ? 'focus-expanded' : ''}`}>
+          <div className={`right-panel ${isFocusMode ? 'focus-expanded' : ''} ${panelType === 'none' ? 'panel-empty' : ''}`}>
             {renderRightPanel()}
           </div>
         )}

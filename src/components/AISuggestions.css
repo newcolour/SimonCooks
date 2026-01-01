@@ -54,12 +54,27 @@
 .generate-card {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    /* Changed from center to align top */
     padding: var(--spacing-xl);
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(249, 115, 22, 0.1) 100%);
     border: 1px solid rgba(139, 92, 246, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.3);
     border-radius: var(--radius-xl);
+    gap: var(--spacing-xl);
+    /* Add explicit gap */
+}
+
+@media (max-width: 768px) {
+    .generate-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .generate-btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: var(--spacing-md);
+    }
 }
 
 .mode-tabs {

@@ -42,7 +42,7 @@ export function BottomNav({
                     className={`bottom-nav-item ${currentView === item.id ? 'active' : ''}`}
                     onClick={() => onViewChange(item.id)}
                 >
-                    <item.icon size={24} />
+                    <item.icon size={24} color="currentColor" strokeWidth={2} />
                     <span className="nav-label">{item.label}</span>
                 </button>
             ))}

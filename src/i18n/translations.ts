@@ -215,6 +215,11 @@ export interface Translations {
         importDesc: string;
         importJson: string;
         importing: string;
+        dataExport: string;
+        exportSettingsLabel: string;
+        exportSettings: string;
+        importSettingsLabel: string;
+        importSettings: string;
     };
     // Common
     common: {
@@ -296,12 +301,12 @@ export const translations: Record<Language, Translations> = {
     en: {
         nav: {
             home: 'Home',
-            recipes: 'All Recipes',
-            aiSuggestions: 'AI Suggestions',
+            recipes: 'Recipes',
+            aiSuggestions: 'AI',
             settings: 'Settings',
             newRecipe: 'New Recipe',
-            shopping: 'Shopping List',
-            fridge: "What's in my Fridge?",
+            shopping: 'Shopping',
+            fridge: 'Fridge',
         },
         filters: {
             all: 'All',
@@ -500,6 +505,11 @@ export const translations: Record<Language, Translations> = {
             importDesc: 'Import recipes from a previously exported JSON file.',
             importJson: 'Import from JSON',
             importing: 'Importing...',
+            dataExport: 'Export Settings',
+            exportSettingsLabel: 'Backup your app configuration:',
+            exportSettings: 'Export Settings',
+            importSettingsLabel: 'Restore configuration:',
+            importSettings: 'Import Settings',
         },
         common: {
             loading: 'Loading...',
@@ -574,12 +584,12 @@ export const translations: Record<Language, Translations> = {
     it: {
         nav: {
             home: 'Home',
-            recipes: 'Tutte le Ricette',
-            aiSuggestions: 'Suggerimenti IA',
-            settings: 'Impostazioni',
-            newRecipe: 'Nuova Ricetta',
-            shopping: 'Lista della Spesa',
-            fridge: 'Cosa ho in Frigo?',
+            recipes: 'Ricette',
+            aiSuggestions: 'AI',
+            settings: 'Settings',
+            newRecipe: 'Nuova',
+            shopping: 'Spesa',
+            fridge: 'Frigo',
         },
         filters: {
             all: 'Tutte',
@@ -778,6 +788,11 @@ export const translations: Record<Language, Translations> = {
             importDesc: 'Importa ricette da un file JSON precedentemente esportato.',
             importJson: 'Importa da JSON',
             importing: 'Importazione...',
+            dataExport: 'Esporta Impostazioni',
+            exportSettingsLabel: 'Fai il backup della configurazione:',
+            exportSettings: 'Esporta Impostazioni',
+            importSettingsLabel: 'Ripristina configurazione:',
+            importSettings: 'Importa Impostazioni',
         },
         common: {
             loading: 'Caricamento...',
@@ -809,7 +824,7 @@ export const translations: Record<Language, Translations> = {
         shopping: {
             title: 'Lista della Spesa',
             subtitle: 'La tua lista della spesa intelligente con IA',
-            addPlaceholder: 'Aggiungi articolo...',
+            addPlaceholder: 'Articolo',
             aiMergeHint: 'L\'IA unirà automaticamente i duplicati',
             itemsChecked: 'selezionati',
             emptyList: 'La tua lista della spesa è vuota',

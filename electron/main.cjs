@@ -497,6 +497,53 @@ ipcMain.handle('settings:getAll', () => {
   return settings;
 });
 
+ipcMain.handle('settings:export', async () => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Export Settings',
+    defaultPath: `simoncooks_settings_${new Date().toISOString().split('T')[0]}.json`,
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+
+  if (!filePath) return { success: false, cancelled: true };
+
+  const rows = db.prepare('SELECT key, value FROM settings').all();
+  const settings = {};
+  rows.forEach(row => {
+    settings[row.key] = JSON.parse(row.value);
+  });
+
+  fs.writeFileSync(filePath, JSON.stringify(settings, null, 2));
+  return { success: true };
+});
+
+ipcMain.handle('settings:import', async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    title: 'Import Settings',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile']
+  });
+
+  if (!filePaths || filePaths.length === 0) return { success: false, cancelled: true };
+
+  const content = fs.readFileSync(filePaths[0], 'utf-8');
+  let settings;
+  try {
+    settings = JSON.parse(content);
+  } catch (e) {
+    throw new Error('Invalid JSON file');
+  }
+
+  const stmt = db.prepare('INSERT OR REPLACE INTO settings(key, value) VALUES(?, ?)');
+  const insertMany = db.transaction((data) => {
+    for (const [key, value] of Object.entries(data)) {
+      stmt.run(key, JSON.stringify(value));
+    }
+  });
+
+  insertMany(settings);
+  return { success: true };
+});
+
 // Proxy handler for fetching external URLs (bypassing CORS)
 // Proxy handler for fetching external URLs (bypassing CORS and simple bot checks)
 ipcMain.handle('app:fetchUrl', async (_, url) => {

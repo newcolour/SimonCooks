@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         delete: (id) => ipcRenderer.invoke('recipe:delete', id),
         search: (query) => ipcRenderer.invoke('recipe:search', query),
         searchByIngredient: (ingredient) => ipcRenderer.invoke('recipe:searchByIngredient', ingredient),
+        export: (options) => ipcRenderer.invoke('recipe:export', options),
+        import: () => ipcRenderer.invoke('recipe:import'),
     },
 
     // Settings operations
@@ -17,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         get: (key) => ipcRenderer.invoke('settings:get', key),
         set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
         getAll: () => ipcRenderer.invoke('settings:getAll'),
+        export: () => ipcRenderer.invoke('settings:export'),
+        import: () => ipcRenderer.invoke('settings:import'),
     },
 
     // Shopping List operations

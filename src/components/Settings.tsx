@@ -138,9 +138,10 @@ interface SettingsProps {
     onReset: () => Promise<void>;
     recipes: Recipe[];
     onImportRecipes: (recipes: Recipe[]) => Promise<void>;
+    onImportSettings?: (settings: Partial<AppSettings>) => Promise<void>;
 }
 
-export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage, onReset, recipes, onImportRecipes }: SettingsProps) {
+export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage, onReset, recipes, onImportRecipes, onImportSettings }: SettingsProps) {
     const [localSettings, setLocalSettings] = useState<AISettings>(settings.ai);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -148,6 +149,8 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
     const [exportType, setExportType] = useState<'all' | 'food' | 'drink'>('all');
     const [isExporting, setIsExporting] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [isExportingSettings, setIsExportingSettings] = useState(false);
+    const [isImportingSettings, setIsImportingSettings] = useState(false);
 
     // Default language to English if not set
     const language = settings.language || 'en';
@@ -229,17 +232,21 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
                         try {
-                            const text = await file.text();
+                            let text = await file.text();
+                            // Strip UTF-8 BOM if present
+                            if (text.charCodeAt(0) === 0xFEFF) {
+                                text = text.slice(1);
+                            }
                             const data = JSON.parse(text);
                             if (Array.isArray(data)) {
                                 await onImportRecipes(data);
                                 setSaved(true);
                                 setTimeout(() => setSaved(false), 3000);
                             } else {
-                                setError("Invalid format: Not an array");
+                                setError("Invalid format: Not a recipe array");
                             }
                         } catch (err) {
-                            setError("Invalid JSON file");
+                            setError(`JSON Error: ${err instanceof Error ? err.message : "Invalid format"}`);
                         } finally {
                             setIsImporting(false);
                         }
@@ -257,6 +264,110 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
         } catch (err) {
             setError(err instanceof Error ? err.message : "Import failed");
             setIsImporting(false);
+        }
+    };
+
+    const handleExportSettings = async () => {
+        setIsExportingSettings(true);
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.settings.export();
+                if (result.success) {
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                }
+            } else {
+                // Web/Mobile Fallback
+                // Create a clean settings object to export
+                const settingsToExport = {
+                    ai: localSettings, // Use current local editing state
+                    theme: settings.theme,
+                    language: settings.language,
+                    tourCompleted: settings.tourCompleted
+                };
+
+                const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `simoncooks_settings_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Settings export failed");
+        } finally {
+            setIsExportingSettings(false);
+        }
+    };
+
+    const handleImportSettings = async () => {
+        setIsImportingSettings(true);
+        try {
+            if (window.electronAPI) {
+                // For Electron, the main process handles the DB update directly, but we need to reload the UI state 
+                // Since this component uses props for some settings and local state for AI, it might be tricky without a full app reload
+                // However, onImportSettings prop can trigger a re-fetch from parent
+                const result = await window.electronAPI.settings.import();
+                if (result.success) {
+                    if (onImportSettings) {
+                        // We need to re-fetch settings. 
+                        // Since main process updated DB, parent needs to reload.
+                        // We can signal parent to reload.
+                        // Assuming onImportSettings refreshes the entire app settings context.
+                        await onImportSettings({});
+                    } else {
+                        // Fallback: reload window to apply settings
+                        window.location.reload();
+                    }
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                }
+            } else {
+                // Web/Mobile Fallback
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'application/json';
+                input.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                        try {
+                            let text = await file.text();
+                            // Strip UTF-8 BOM if present
+                            if (text.charCodeAt(0) === 0xFEFF) {
+                                text = text.slice(1);
+                            }
+                            const data = JSON.parse(text);
+                            // Validate needed keys
+                            if (data.ai || data.theme || data.language) {
+                                if (onImportSettings) {
+                                    await onImportSettings(data);
+                                    // Update local state if AI settings changed
+                                    if (data.ai) setLocalSettings(data.ai);
+                                }
+                                setSaved(true);
+                                setTimeout(() => setSaved(false), 3000);
+                            } else {
+                                setError("Invalid settings format: Missing required fields");
+                            }
+                        } catch (err) {
+                            setError(`JSON Error: ${err instanceof Error ? err.message : "Invalid format"}`);
+                        } finally {
+                            setIsImportingSettings(false);
+                        }
+                    } else {
+                        setIsImportingSettings(false);
+                    }
+                };
+                input.click();
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Settings import failed");
+            setIsImportingSettings(false);
         }
     };
 
@@ -645,6 +756,34 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     </p>
 
                     <div className="data-management-grid">
+                        <div className="export-section">
+                            <h3>{t.settings.dataExport}</h3>
+                            <div className="settings-export-row">
+                                <span className="label-text">{t.settings.exportSettingsLabel}</span>
+                                <button
+                                    className="action-btn export-btn"
+                                    onClick={handleExportSettings}
+                                    disabled={isExportingSettings}
+                                >
+                                    <Download size={18} />
+                                    {isExportingSettings ? t.settings.exporting : t.settings.exportSettings}
+                                </button>
+                            </div>
+                            <div className="settings-export-row" style={{ marginTop: '1rem' }}>
+                                <span className="label-text">{t.settings.importSettingsLabel}</span>
+                                <button
+                                    className="action-btn import-btn"
+                                    onClick={handleImportSettings}
+                                    disabled={isImportingSettings}
+                                >
+                                    <Upload size={18} />
+                                    {isImportingSettings ? t.settings.importing : t.settings.importSettings}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="data-management-grid" style={{ marginTop: '2rem', borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
                         <div className="export-section">
                             <h3>{t.settings.exportRecipes}</h3>
                             <div className="radio-group">

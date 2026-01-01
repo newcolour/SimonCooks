@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Recipe, AISettings } from '../types';
+import type { Recipe, AISettings, ShoppingItem } from '../types';
+import { get, set } from 'idb-keyval';
+const SHOPPING_STORAGE_KEY = 'simoncooks_shopping';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
 import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutrition, calculateFlavorProfile, mergeShoppingList, simpleShoppingMerge, type SuggestedRecipe } from '../services/aiService';
@@ -70,6 +72,8 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     const [addingToList, setAddingToList] = useState(false);
     const [addedToList, setAddedToList] = useState(false);
     const [showCookingMode, setShowCookingMode] = useState(false);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const t = getTranslation(language);
 
@@ -117,14 +121,21 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
 
     // Add ingredients to shopping list (with AI merge)
     const handleAddToShoppingList = async () => {
-        if (!activeRecipe || !window.electronAPI?.shoppingList) return;
+        if (!activeRecipe) return;
 
         setAddingToList(true);
         setAddedToList(false);
 
         try {
             // Get current shopping list
-            const currentItems = await window.electronAPI.shoppingList.getAll();
+            let currentItems: ShoppingItem[] = [];
+            if (window.electronAPI?.shoppingList) {
+                currentItems = await window.electronAPI.shoppingList.getAll();
+            } else {
+                const stored = await get<ShoppingItem[]>(SHOPPING_STORAGE_KEY);
+                if (stored) currentItems = stored;
+            }
+
             const newIngredients = activeRecipe.ingredients.map(ing => ({
                 name: ing.name,
                 amount: ing.amount,
@@ -132,57 +143,54 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
             }));
 
             const hasAI = aiSettings?.apiKey || aiSettings?.provider === 'ollama';
+            let newItems: ShoppingItem[] = [];
 
             if (hasAI && aiSettings && currentItems.length > 0) {
                 // Use AI merge
                 try {
                     const merged = await mergeShoppingList(aiSettings, currentItems, newIngredients);
-                    const newItems = merged.map(m => ({
+                    newItems = merged.map(m => ({
                         id: crypto.randomUUID(),
                         name: m.name,
                         amount: m.amount,
                         unit: m.unit,
                         checked: m.checked
                     }));
-                    await window.electronAPI.shoppingList.replaceAll(newItems);
                 } catch {
                     // Fallback to simple merge
                     const merged = simpleShoppingMerge(currentItems, newIngredients);
-                    const newItems = merged.map(m => ({
+                    newItems = merged.map(m => ({
                         id: crypto.randomUUID(),
                         name: m.name,
                         amount: m.amount,
                         unit: m.unit,
                         checked: m.checked
                     }));
-                    await window.electronAPI.shoppingList.replaceAll(newItems);
                 }
-            } else if (currentItems.length > 0) {
-                // Simple merge without AI
+            } else {
+                // Simple merge (append)
                 const merged = simpleShoppingMerge(currentItems, newIngredients);
-                const newItems = merged.map(m => ({
+                newItems = merged.map(m => ({
                     id: crypto.randomUUID(),
                     name: m.name,
                     amount: m.amount,
                     unit: m.unit,
                     checked: m.checked
                 }));
+            }
+
+            // Save updated list
+            // Save updated list
+            if (window.electronAPI?.shoppingList) {
                 await window.electronAPI.shoppingList.replaceAll(newItems);
             } else {
-                // Add directly (empty list)
-                const newItems = newIngredients.map(ing => ({
-                    id: crypto.randomUUID(),
-                    name: ing.name,
-                    amount: ing.amount,
-                    unit: ing.unit,
-                    checked: false
-                }));
-                await window.electronAPI.shoppingList.addMultiple(newItems);
+                await set(SHOPPING_STORAGE_KEY, newItems);
             }
 
             setAddedToList(true);
-            // Reset after 3 seconds
             setTimeout(() => setAddedToList(false), 3000);
+        } catch (err) {
+            console.error('Failed to add to shopping list:', err);
         } finally {
             setAddingToList(false);
         }
@@ -397,8 +405,6 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     };
 
     // Touch Handling for Swipe Back
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const minSwipeDistance = 100;
 
     const onTouchStart = (e: React.TouchEvent) => {
@@ -456,14 +462,14 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                     )}
                     {aiSettings && (
                         <button
-                            className={`action-btn tooltip-btn translate ${translatedRecipe ? 'active' : ''}`}
+                            className={`action-btn translate ${translatedRecipe ? 'active' : ''}`}
                             onClick={handleTranslate}
                             disabled={translating}
                             title={translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}
                             style={{ marginRight: '8px' }}
                         >
                             {translating ? <Loader size={18} className="animate-spin" /> : <Languages size={18} />}
-                            <span className="action-label">{translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}</span>
+                            <span>{translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}</span>
                         </button>
                     )}
                     {/* Remix Button (Drinks Only) */}
@@ -475,7 +481,7 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                             style={{ marginRight: '8px' }}
                         >
                             <Sparkles size={18} />
-                            <span className="action-label">Remix</span>
+                            <span>Remix</span>
                         </button>
                     )}
 
@@ -486,35 +492,33 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                         title={t.cooking?.start || "Start Cooking"}
                     >
                         <PlayCircle size={18} />
-                        <span className="action-label">{t.cooking?.start || "Start Cooking"}</span>
+                        <span>{t.cooking?.start || "Start Cooking"}</span>
                     </button>
 
                     {/* Add to Shopping List */}
-                    {window.electronAPI?.shoppingList && (
-                        <button
-                            className={`action-btn tooltip-btn shopping ${addedToList ? 'success' : ''}`}
-                            onClick={handleAddToShoppingList}
-                            disabled={addingToList}
-                            title={t.shopping?.addedToList || 'Add to Shopping List'}
-                            style={{ marginRight: '8px' }}
-                        >
-                            {addingToList ? (
-                                <Loader size={18} className="animate-spin" />
-                            ) : addedToList ? (
-                                <CheckCircle size={18} />
-                            ) : (
-                                <ShoppingCart size={18} />
-                            )}
-                            <span className="action-label">{addedToList ? (t.shopping?.addedToList || 'Added!') : (t.nav?.shopping || 'Shopping')}</span>
-                        </button>
-                    )}
-                    <button className="action-btn tooltip-btn edit" onClick={onEdit}>
-                        <Edit size={18} />
-                        <span className="action-label">{t.recipe.edit}</span>
+                    <button
+                        className={`action-btn shopping ${addedToList ? 'success' : ''}`}
+                        onClick={handleAddToShoppingList}
+                        disabled={addingToList}
+                        title={t.shopping?.addedToList || 'Add to Shopping List'}
+                        style={{ marginRight: '8px' }}
+                    >
+                        {addingToList ? (
+                            <Loader size={18} className="animate-spin" />
+                        ) : addedToList ? (
+                            <CheckCircle size={18} />
+                        ) : (
+                            <ShoppingCart size={18} />
+                        )}
+                        <span>{addedToList ? (t.shopping?.addedToList || 'Added!') : (t.nav?.shopping || 'Shopping')}</span>
                     </button>
-                    <button className="action-btn tooltip-btn delete" onClick={handleDelete}>
+                    <button className="action-btn edit" onClick={onEdit}>
+                        <Edit size={18} />
+                        <span>{t.recipe.edit}</span>
+                    </button>
+                    <button className="action-btn delete" onClick={handleDelete}>
                         <Trash2 size={18} />
-                        <span className="action-label">{t.recipe.delete}</span>
+                        <span>{t.recipe.delete}</span>
                     </button>
                 </div>
             </div>

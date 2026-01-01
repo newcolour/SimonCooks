@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Recipe } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { get, set } from 'idb-keyval';
 
 interface UseRecipesReturn {
     recipes: Recipe[];
@@ -30,9 +31,30 @@ export function useRecipes(): UseRecipesReturn {
                 const data = await window.electronAPI.recipe.getAll();
                 setRecipes(data);
             } else {
-                // Fallback for web development
-                const stored = localStorage.getItem('simoncooks_recipes');
-                setRecipes(stored ? JSON.parse(stored) : []);
+                // Fallback for web/mobile using IndexedDB (idb-keyval)
+                const stored = await get<Recipe[]>('simoncooks_recipes');
+                if (stored) {
+                    setRecipes(stored);
+                } else {
+                    // Migration check: if nothing in IDB, check localStorage once
+                    const local = localStorage.getItem('simoncooks_recipes');
+                    if (local) {
+                        try {
+                            const parsed = JSON.parse(local);
+                            if (Array.isArray(parsed)) {
+                                await set('simoncooks_recipes', parsed);
+                                setRecipes(parsed);
+                                // Optional: clear localStorage after successful migration
+                                // localStorage.removeItem('simoncooks_recipes'); 
+                            }
+                        } catch (e) {
+                            console.error("Migration failed", e);
+                            setRecipes([]);
+                        }
+                    } else {
+                        setRecipes([]);
+                    }
+                }
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load recipes');
@@ -61,11 +83,10 @@ export function useRecipes(): UseRecipesReturn {
                 setRecipes(prev => [created, ...prev]);
                 return created;
             } else {
-                // Fallback for web development
-                const stored = localStorage.getItem('simoncooks_recipes');
-                const current = stored ? JSON.parse(stored) : [];
-                const updated = [newRecipe, ...current];
-                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                // Fallback for web/mobile
+                const stored = (await get<Recipe[]>('simoncooks_recipes')) || [];
+                const updated = [newRecipe, ...stored];
+                await set('simoncooks_recipes', updated);
                 setRecipes(updated);
                 return newRecipe;
             }
@@ -87,11 +108,10 @@ export function useRecipes(): UseRecipesReturn {
                 setRecipes(prev => prev.map(r => r.id === updated.id ? updated : r));
                 return updated;
             } else {
-                // Fallback for web development
-                const stored = localStorage.getItem('simoncooks_recipes');
-                const current = stored ? JSON.parse(stored) : [];
-                const updated = current.map((r: Recipe) => r.id === updatedRecipe.id ? updatedRecipe : r);
-                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                // Fallback for web/mobile
+                const stored = (await get<Recipe[]>('simoncooks_recipes')) || [];
+                const updated = stored.map((r: Recipe) => r.id === updatedRecipe.id ? updatedRecipe : r);
+                await set('simoncooks_recipes', updated);
                 setRecipes(updated);
                 return updatedRecipe;
             }
@@ -108,11 +128,10 @@ export function useRecipes(): UseRecipesReturn {
                 setRecipes(prev => prev.filter(r => r.id !== id));
                 return true;
             } else {
-                // Fallback for web development
-                const stored = localStorage.getItem('simoncooks_recipes');
-                const current = stored ? JSON.parse(stored) : [];
-                const updated = current.filter((r: Recipe) => r.id !== id);
-                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                // Fallback for web/mobile
+                const stored = (await get<Recipe[]>('simoncooks_recipes')) || [];
+                const updated = stored.filter((r: Recipe) => r.id !== id);
+                await set('simoncooks_recipes', updated);
                 setRecipes(updated);
                 return true;
             }
@@ -134,11 +153,10 @@ export function useRecipes(): UseRecipesReturn {
                 setRecipes(prev => prev.filter(r => !ids.includes(r.id)));
                 return true;
             } else {
-                // Fallback for web development - bulk delete in localStorage
-                const stored = localStorage.getItem('simoncooks_recipes');
-                const current = stored ? JSON.parse(stored) : [];
-                const updated = current.filter((r: Recipe) => !ids.includes(r.id));
-                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                // Fallback for web/mobile - bulk delete
+                const stored = (await get<Recipe[]>('simoncooks_recipes')) || [];
+                const updated = stored.filter((r: Recipe) => !ids.includes(r.id));
+                await set('simoncooks_recipes', updated);
                 setRecipes(updated);
                 return true;
             }
@@ -201,8 +219,13 @@ export function useRecipes(): UseRecipesReturn {
                 console.warn("importRecipes called in Electron mode - consider using IPC");
             } else {
                 // Fallback for web/android
-                const stored = localStorage.getItem('simoncooks_recipes');
-                const current = stored ? JSON.parse(stored) : [];
+                const stored = (await get<Recipe[]>('simoncooks_recipes')) || [];
+                // Migration check if needed
+                let current = stored;
+                if (current.length === 0) {
+                    const local = localStorage.getItem('simoncooks_recipes');
+                    if (local) current = JSON.parse(local);
+                }
 
                 // Merge strategies: using ID as key
                 const currentIds = new Set(current.map((r: Recipe) => r.id));
@@ -220,7 +243,7 @@ export function useRecipes(): UseRecipesReturn {
                 // Adds
                 updated = [...toAdd, ...updated];
 
-                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                await set('simoncooks_recipes', updated);
                 setRecipes(updated);
             }
         } catch (err) {
