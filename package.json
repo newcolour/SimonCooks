@@ -2,7 +2,7 @@
   "name": "simon-cooks",
   "productName": "SimonCooks",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "A beautiful recipe management app with AI-powered suggestions",
   "author": "Simone <simone@simoncooks.app>",
   "main": "electron/main.cjs",
