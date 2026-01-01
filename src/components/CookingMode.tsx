@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import type { Recipe, AISettings } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
+import { Capacitor } from '@capacitor/core';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 // import { askCookingQuestion } from '../services/aiService'; // Re-enable when Whisper is integrated
 import {
     ChevronLeft,
@@ -142,6 +144,12 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
 
     // Load voices on mount
     useEffect(() => {
+        // Check if speechSynthesis is available
+        if (!window.speechSynthesis) {
+            console.warn("Speech synthesis not available on this device");
+            return;
+        }
+
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
             console.log("Loaded voices:", voices.length);
@@ -151,10 +159,16 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
         };
         loadVoices();
         window.speechSynthesis.onvoiceschanged = loadVoices;
-        return () => { window.speechSynthesis.onvoiceschanged = null; };
+        return () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.onvoiceschanged = null;
+            }
+        };
     }, []);
 
     const getBestVoice = (langCode: string) => {
+        if (!window.speechSynthesis) return null;
+
         const voices = window.speechSynthesis.getVoices();
         // 1. Try exact match (e.g. "Google Italiano")
         let bestVoice = voices.find(v => v.lang === langCode && v.name.includes('Google'));
@@ -165,58 +179,96 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
         return bestVoice;
     };
 
-    const speakText = (text: string) => {
-        window.speechSynthesis.cancel();
+    const speakText = async (text: string) => {
+        const isMobile = Capacitor.isNativePlatform();
 
-        const langCode = language === 'it' ? 'it-IT' : 'en-US';
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        utterance.lang = langCode;
-
-        // Select best voice
-        const voice = getBestVoice(langCode);
-        if (voice) {
-            utterance.voice = voice;
-            console.log(`Using voice: ${voice.name} (${voice.lang})`);
+        if (isMobile) {
+            // Use Capacitor TTS on mobile
+            try {
+                await TextToSpeech.speak({
+                    text: text,
+                    lang: language === 'it' ? 'it-IT' : 'en-US',
+                    rate: 0.85,
+                    pitch: 1.0,
+                    volume: 1.0,
+                    category: 'ambient'
+                });
+                setSpeechStatus('playing');
+                // Note: Capacitor TTS doesn't have onend callback, so we set to idle after a delay
+                setTimeout(() => setSpeechStatus('idle'), text.length * 50); // Rough estimate
+            } catch (error) {
+                console.error('TTS error:', error);
+                setSpeechStatus('idle');
+            }
         } else {
-            console.warn(`No voice found for ${langCode}, using default.`);
-        }
+            // Use Web Speech API on web/desktop
+            if (!window.speechSynthesis) {
+                console.warn("Speech synthesis not available");
+                return;
+            }
 
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
+            window.speechSynthesis.cancel();
 
-        utterance.onstart = () => {
-            console.log("Speech started");
+            const langCode = language === 'it' ? 'it-IT' : 'en-US';
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            utterance.lang = langCode;
+
+            // Select best voice
+            const voice = getBestVoice(langCode);
+            if (voice) {
+                utterance.voice = voice;
+                console.log(`Using voice: ${voice.name} (${voice.lang})`);
+            } else {
+                console.warn(`No voice found for ${langCode}, using default.`);
+            }
+
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            utterance.onstart = () => {
+                console.log("Speech started");
+                setSpeechStatus('playing');
+            };
+
+            utterance.onend = () => {
+                console.log("Speech ended");
+                setSpeechStatus('idle');
+                utteranceRef.current = null; // Clear ref
+            };
+
+            utterance.onerror = (e) => {
+                console.error("Speech error event:", e);
+                // @ts-ignore - 'error' property exists on SpeechSynthesisErrorEvent
+                console.error("Speech error code:", e.error);
+                setSpeechStatus('idle');
+                utteranceRef.current = null;
+            };
+
+            // Keep ref to prevent GC
+            utteranceRef.current = utterance;
+
             setSpeechStatus('playing');
-        };
-
-        utterance.onend = () => {
-            console.log("Speech ended");
-            setSpeechStatus('idle');
-            utteranceRef.current = null; // Clear ref
-        };
-
-        utterance.onerror = (e) => {
-            console.error("Speech error event:", e);
-            // @ts-ignore - 'error' property exists on SpeechSynthesisErrorEvent
-            console.error("Speech error code:", e.error);
-            setSpeechStatus('idle');
-            utteranceRef.current = null;
-        };
-
-        // Keep ref to prevent GC
-        utteranceRef.current = utterance;
-
-        setSpeechStatus('playing');
-        window.speechSynthesis.speak(utterance);
+            window.speechSynthesis.speak(utterance);
+        }
     };
 
     const speakStep = (index: number) => {
+        const isMobile = Capacitor.isNativePlatform();
+
         // If we are already speaking this step and paused, just resume
         if (speechStatus === 'paused') {
-            window.speechSynthesis.resume();
-            setSpeechStatus('playing');
-            return;
+            if (isMobile) {
+                // Native TTS doesn't typically support resume from pause in the same way, just restart speakText
+                // Or if we want to be simple, treating "pause" as "stop" on mobile is cleaner.
+                // But let's try calling speakText again for the current index logic below.
+            } else {
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.resume();
+                    setSpeechStatus('playing');
+                    return;
+                }
+            }
         }
 
         if (index < steps.length) {
@@ -228,7 +280,25 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
         }
     };
 
-    const toggleSpeech = () => {
+    const toggleSpeech = async () => {
+        const isMobile = Capacitor.isNativePlatform();
+
+        if (isMobile) {
+            if (speechStatus === 'playing') {
+                await TextToSpeech.stop();
+                setSpeechStatus('paused'); // Treating stop as pause for UI state
+            } else {
+                // Resume or start
+                speakStep(currentStep);
+            }
+            return;
+        }
+
+        if (!window.speechSynthesis) {
+            console.warn("Speech synthesis not available");
+            return;
+        }
+
         if (speechStatus === 'playing') {
             window.speechSynthesis.pause();
             setSpeechStatus('paused');
@@ -266,7 +336,12 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
             return () => clearTimeout(timer);
         }
         return () => {
-            window.speechSynthesis.cancel();
+            const isMobile = Capacitor.isNativePlatform();
+            if (isMobile) {
+                TextToSpeech.stop().catch(console.error);
+            } else if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
         };
     }, [isTranslating, voicesLoaded]); // Depend on isTranslating and voicesLoaded
 

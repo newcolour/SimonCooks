@@ -126,6 +126,37 @@ function OllamaSettings({ localSettings, setLocalSettings, language }: OllamaSet
                     <span className="models-error">{modelsError}</span>
                 )}
             </div>
+
+            {/* Advanced Vision Settings */}
+            <div className="form-group advanced-section">
+                <label className="section-label">
+                    {language === 'it' ? '🔬 Impostazioni Avanzate (Visione AI)' : '🔬 Advanced Settings (AI Vision)'}
+                </label>
+                <div className="vision-temperature-control">
+                    <label>
+                        {language === 'it' ? 'Temperatura Analisi Immagini' : 'Image Analysis Temperature'}
+                        <span className="temp-value">{(localSettings.visionTemperature ?? 0.3).toFixed(1)}</span>
+                    </label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={localSettings.visionTemperature ?? 0.3}
+                        onChange={(e) => setLocalSettings({ ...localSettings, visionTemperature: parseFloat(e.target.value) })}
+                        className="temperature-slider"
+                    />
+                    <div className="temp-labels">
+                        <span>{language === 'it' ? 'Conservativo' : 'Conservative'}</span>
+                        <span>{language === 'it' ? 'Sensibile' : 'Sensitive'}</span>
+                    </div>
+                    <p className="temp-warning">
+                        ⚠️ {language === 'it'
+                            ? 'Temperatura più alta = più ingredienti rilevati, ma anche più allucinazioni possibili'
+                            : 'Higher temperature = more ingredients detected, but more hallucinations possible'}
+                    </p>
+                </div>
+            </div>
         </>
     );
 }
@@ -215,22 +246,25 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
     };
 
     const handleImport = async () => {
-        setIsImporting(true);
         try {
             if (window.electronAPI) {
+                setIsImporting(true);
                 const result = await window.electronAPI.recipe.import();
                 if (result.success) {
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                 }
+                setIsImporting(false);
             } else {
-                // Web/Mobile Fallback
+                // Web/Mobile Fallback - Don't set loading state until file is selected
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
+
                 input.onchange = async (e) => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
+                        setIsImporting(true); // Set loading state only when file is selected
                         try {
                             let text = await file.text();
                             // Strip UTF-8 BOM if present
@@ -254,12 +288,8 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                         setIsImporting(false);
                     }
                 };
+
                 input.click();
-                // Wait for user interaction? No, input.click() is async in UI but synchronous in execution flow. 
-                // We won't block here, but we set isImporting to false only in onchange or if no file (cancelled).
-                // Actually, cancellation is hard to detect with input type file.
-                // We'll set isImporting false immediately for web fallback usage flow or inside onchange.
-                // Better UX: keep it simple.
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Import failed");
@@ -306,12 +336,12 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
     };
 
     const handleImportSettings = async () => {
-        setIsImportingSettings(true);
         try {
             if (window.electronAPI) {
                 // For Electron, the main process handles the DB update directly, but we need to reload the UI state 
                 // Since this component uses props for some settings and local state for AI, it might be tricky without a full app reload
                 // However, onImportSettings prop can trigger a re-fetch from parent
+                setIsImportingSettings(true);
                 const result = await window.electronAPI.settings.import();
                 if (result.success) {
                     if (onImportSettings) {
@@ -327,14 +357,26 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                 }
+                setIsImportingSettings(false);
             } else {
-                // Web/Mobile Fallback
+                // Web/Mobile Fallback - Don't set loading state until file is selected
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/json';
+
+                // Detect cancellation by listening for window focus
+                const handleCancel = () => {
+                    setTimeout(() => {
+                        setIsImportingSettings(false);
+                        window.removeEventListener('focus', handleCancel);
+                    }, 300);
+                };
+
                 input.onchange = async (e) => {
+                    window.removeEventListener('focus', handleCancel);
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
+                        setIsImportingSettings(true); // Set loading state only when file is selected
                         try {
                             let text = await file.text();
                             // Strip UTF-8 BOM if present
@@ -359,10 +401,11 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                         } finally {
                             setIsImportingSettings(false);
                         }
-                    } else {
-                        setIsImportingSettings(false);
                     }
                 };
+
+                // Add focus listener before clicking
+                window.addEventListener('focus', handleCancel);
                 input.click();
             }
         } catch (err) {

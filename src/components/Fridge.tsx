@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import type { Recipe, AISettings } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { analyzeFridgeImage } from '../services/aiService';
 import {
     Refrigerator,
     Search,
@@ -11,7 +14,11 @@ import {
     Users,
     X,
     Plus,
-    ArrowRight
+    ArrowRight,
+    Camera as CameraIcon,
+    Loader,
+    ImageUp,
+    Eye
 } from 'lucide-react';
 import './Fridge.css';
 
@@ -30,6 +37,30 @@ interface RecipeMatch {
     missingIngredients: string[];
 }
 
+// Helper to resize image
+const resizeImage = (base64Str: string, maxWidth: number = 800): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = `data:image/jpeg;base64,${base64Str}`;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl.split(',')[1]);
+        };
+        img.onerror = () => resolve(base64Str); // Fallback
+    });
+};
+
 export function Fridge({
     recipes,
     aiSettings,
@@ -39,7 +70,19 @@ export function Fridge({
 }: FridgeProps) {
     const [ingredients, setIngredients] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState<string | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string | null>(null);
+    const [showDebug, setShowDebug] = useState(false);
+    // Image preview state
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
+    const [showImagePreview, setShowImagePreview] = useState(false);
     const t = getTranslation(language);
+
+    const isMobile = Capacitor.isNativePlatform();
+    // Enable camera for all mobile users. If Ollama isn't configured, aiService will throw a clear error.
+    const canUseCamera = isMobile;
 
     const handleAddIngredient = () => {
         if (inputValue.trim() && !ingredients.includes(inputValue.trim().toLowerCase())) {
@@ -56,6 +99,137 @@ export function Fridge({
         if (e.key === 'Enter') {
             e.preventDefault();
             handleAddIngredient();
+        }
+    };
+
+    // Shared function to analyze a photo (from camera or gallery)
+    const analyzePhoto = async (source: typeof CameraSource.Camera | typeof CameraSource.Photos) => {
+        if (!canUseCamera) return;
+
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+        setDebugInfo(null);
+        setShowDebug(false);
+
+        try {
+            // Get photo using Capacitor Camera
+            const photo = await Camera.getPhoto({
+                quality: 80,
+                allowEditing: false,
+                resultType: CameraResultType.Base64,
+                source: source,
+                width: 1024,
+                height: 1024
+            });
+
+            if (!photo.base64String) {
+                throw new Error('No image selected');
+            }
+
+            // Analyze the image with AI
+            const result = await analyzeFridgeImage(
+                aiSettings,
+                photo.base64String,
+                language
+            );
+
+            setDebugInfo(result.debug || null);
+
+            if (result.ingredients.length > 0) {
+                // Store for preview
+                setCapturedImage(`data:image/jpeg;base64,${photo.base64String}`);
+                setDetectedIngredients(result.ingredients);
+
+                // Add detected ingredients (avoid duplicates)
+                const newIngredients = result.ingredients.filter(
+                    ing => !ingredients.includes(ing.toLowerCase())
+                );
+                setIngredients([...ingredients, ...newIngredients]);
+            } else {
+                setAnalysisError(language === 'it'
+                    ? 'Nessun ingrediente rilevato. Prova con una foto più chiara.'
+                    : 'No ingredients detected. Try a clearer photo.');
+                setShowDebug(true);
+            }
+        } catch (error: any) {
+            console.error('Camera/Analysis error:', error);
+            const errorMessage = error.message || String(error);
+            setDebugInfo(`Error: ${errorMessage}`);
+            setAnalysisError(language === 'it'
+                ? 'Errore nell\'analisi. Clicca per dettagli.'
+                : 'Analysis error. Click for details.');
+            setShowDebug(true);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleTakeFridgePhoto = () => analyzePhoto(CameraSource.Camera);
+
+    // Handle file upload from Files app
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !canUseCamera) return;
+
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+        setDebugInfo(null);
+        setShowDebug(false);
+
+        try {
+            // Convert file to base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+            });
+            reader.readAsDataURL(file);
+
+            const originalBase64 = await base64Promise;
+            // Resize to prevent large payload timeout
+            const resizedBase64 = await resizeImage(originalBase64);
+
+            // Analyze the image with AI
+            const result = await analyzeFridgeImage(
+                aiSettings,
+                resizedBase64,
+                language
+            );
+
+            setDebugInfo(result.debug || null);
+
+            if (result.ingredients.length > 0) {
+                // Store for preview
+                setCapturedImage(`data:image/jpeg;base64,${resizedBase64}`);
+                setDetectedIngredients(result.ingredients);
+
+                const newIngredients = result.ingredients.filter(
+                    ing => !ingredients.includes(ing.toLowerCase())
+                );
+                setIngredients([...ingredients, ...newIngredients]);
+            } else {
+                setAnalysisError(language === 'it'
+                    ? 'Nessun ingrediente rilevato. Prova con una foto più chiara.'
+                    : 'No ingredients detected. Try a clearer photo.');
+                setShowDebug(true);
+            }
+        } catch (error: any) {
+            console.error('File upload/Analysis error:', error);
+            const errorMessage = error.message || String(error);
+            setDebugInfo(`Error: ${errorMessage}`);
+            setAnalysisError(language === 'it'
+                ? 'Errore nell\'analisi. Clicca per dettagli.'
+                : 'Analysis error. Click for details.');
+            setShowDebug(true);
+        } finally {
+            setIsAnalyzing(false);
+            // Reset the input so the same file can be selected again
+            event.target.value = '';
         }
     };
 
@@ -129,7 +303,96 @@ export function Fridge({
                         >
                             <Plus size={18} />
                         </button>
+
+                        {/* Camera button - mobile only with Ollama */}
+                        {canUseCamera && (
+                            <button
+                                onClick={handleTakeFridgePhoto}
+                                disabled={isAnalyzing}
+                                className="camera-btn"
+                                title={language === 'it' ? 'Scatta foto del frigo' : 'Take fridge photo'}
+                            >
+                                {isAnalyzing ? (
+                                    <Loader size={18} className="animate-spin" />
+                                ) : (
+                                    <CameraIcon size={18} />
+                                )}
+                            </button>
+                        )}
+
+                        {/* Upload photo from Files - mobile only with Ollama */}
+                        {canUseCamera && (
+                            <label
+                                className={`upload-btn ${isAnalyzing ? 'disabled' : ''}`}
+                                title={language === 'it' ? 'Carica foto da file' : 'Upload from files'}
+                            >
+                                <ImageUp size={18} />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    disabled={isAnalyzing}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                        )}
                     </div>
+
+                    {/* Camera/Upload hint - mobile only */}
+                    {canUseCamera && !isAnalyzing && !analysisError && ingredients.length === 0 && (
+                        <div className="camera-hint">
+                            <CameraIcon size={14} />
+                            <span>
+                                {language === 'it'
+                                    ? 'Scatta o carica una foto del frigo per rilevare gli ingredienti'
+                                    : 'Take or upload a photo of your fridge to detect ingredients'}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Analysis loading state */}
+                    {isAnalyzing && (
+                        <div className="analysis-status">
+                            <Loader size={16} className="animate-spin" />
+                            <span>
+                                {language === 'it'
+                                    ? 'Analizzando immagine...'
+                                    : 'Analyzing image...'}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Analysis error */}
+                    {analysisError && (
+                        <div
+                            className={`analysis-error ${debugInfo ? 'clickable' : ''}`}
+                            onClick={() => debugInfo && setShowDebug(!showDebug)}
+                        >
+                            {analysisError}
+                        </div>
+                    )}
+
+                    {/* Debug Info */}
+                    {showDebug && debugInfo && (
+                        <div className="debug-info">
+                            <pre>{debugInfo}</pre>
+                        </div>
+                    )}
+
+                    {/* View analyzed image button */}
+                    {capturedImage && detectedIngredients.length > 0 && (
+                        <button
+                            className="view-image-btn"
+                            onClick={() => setShowImagePreview(true)}
+                        >
+                            <Eye size={16} />
+                            <span>
+                                {language === 'it'
+                                    ? 'Visualizza immagine analizzata'
+                                    : 'View analyzed image'}
+                            </span>
+                        </button>
+                    )}
 
                     {ingredients.length > 0 && (
                         <div className="ingredients-list">
@@ -241,6 +504,31 @@ export function Fridge({
                     </div>
                 )}
             </div>
+
+            {/* Image Preview Modal */}
+            {showImagePreview && capturedImage && (
+                <div className="image-preview-modal" onClick={() => setShowImagePreview(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className="close-modal-btn"
+                            onClick={() => setShowImagePreview(false)}
+                            aria-label="Close"
+                        >
+                            <X size={24} />
+                        </button>
+                        <div className="image-container">
+                            <img src={capturedImage} alt="Analyzed fridge" />
+                            <div className="ingredient-labels">
+                                {detectedIngredients.map((ing, idx) => (
+                                    <div key={idx} className="ingredient-label">
+                                        {ing}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

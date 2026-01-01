@@ -316,6 +316,28 @@
     background: var(--color-error);
 }
 
+/* Rating Stars */
+.recipe-rating {
+    display: flex;
+    gap: 4px;
+    margin-bottom: var(--spacing-md);
+    cursor: pointer;
+}
+
+.rating-star {
+    color: var(--color-text-tertiary);
+    transition: all 0.2s ease;
+}
+
+.rating-star.filled {
+    color: #eab308;
+    /* yellow-500 */
+}
+
+.rating-star:hover {
+    transform: scale(1.1);
+}
+
 /* Image Error */
 .image-error {
     display: flex;

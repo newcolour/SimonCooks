@@ -17,7 +17,7 @@ import { BottomNav } from './components/BottomNav';
 import './App.css';
 
 type ViewType = 'home' | 'recipes' | 'ai-suggest' | 'settings' | 'shopping' | 'fridge';
-type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai';
+type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai' | '5star';
 type PanelType = 'detail' | 'editor' | 'none';
 
 function App() {
@@ -185,6 +185,7 @@ function App() {
             onDeleteMultiple={handleDeleteMultiple}
             loading={loading}
             language={settings.language || 'en'}
+            onFilterChange={setCurrentFilter}
           />
         );
       case 'ai-suggest':

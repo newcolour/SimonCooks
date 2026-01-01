@@ -91,6 +91,106 @@ export async function fetchOllamaModels(endpoint: string = 'http://localhost:114
     }
 }
 
+// Analyze fridge image using multimodal Ollama model (Android only)
+export async function analyzeFridgeImage(
+    settings: AISettings,
+    imageBase64: string,
+    language: string = 'en'
+): Promise<{ ingredients: string[], debug: string }> {
+    // We allow trying even if provider is not 'ollama', assuming the user has an Ollama instance accessible.
+    // This supports 'Hybrid' setups (e.g. Gemini for Text, Ollama for Vision).
+    const endpoint = settings.ollamaEndpoint || 'http://localhost:11434';
+
+    // On Android, localhost won't work unless running on device. 
+    // We proceed and let the fetch fail if unreachable.
+    // Use the configured model or default to gemma3:12b for multimodal
+    const model = settings.ollamaModel || 'gemma3:12b';
+
+    // Balanced anti-hallucination prompt
+    const systemPrompt = language === 'it'
+        ? `Sei un assistente che analizza foto di frigo/dispensa. REGOLE:
+1. Elenca gli ingredienti che puoi VEDERE CHIARAMENTE nell'immagine
+2. Includi solo cibi riconoscibili e identificabili
+3. NON inventare ingredienti che non vedi
+4. Se vedi contenitori/bottiglie senza etichetta chiara, prova a identificare il contenuto dal contesto
+5. Restituisci un array JSON di stringhe
+
+Esempio: ["pomodori", "latte", "uova", "formaggio", "olio"]`
+        : `You are an assistant analyzing fridge/pantry photos. RULES:
+1. List ingredients you can CLEARLY SEE in the image
+2. Include only recognizable and identifiable foods
+3. Do NOT invent ingredients you don't see
+4. If you see containers/bottles without clear labels, try to identify contents from context
+5. Return a JSON array of strings
+
+Example: ["tomatoes", "milk", "eggs", "cheese", "oil"]`;
+
+    try {
+        console.log(`Analyzing image with model: ${model} at ${endpoint}`);
+
+        const response = await fetch(`${endpoint}/api/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: model,
+                prompt: systemPrompt,
+                images: [imageBase64], // Ollama multimodal format
+                stream: false,
+                format: "json",
+                options: {
+                    temperature: settings.visionTemperature ?? 0.3,  // User-configurable, default 0.3
+                    top_p: 0.9,
+                    num_predict: 150   // Allow slightly longer responses
+                }
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Ollama API error:', errorText);
+            throw new Error(`Failed to analyze image (Status ${response.status}): ${errorText.substring(0, 100)}`);
+        }
+
+        const data = await response.json();
+        const responseText = data.response;
+
+        console.log('Raw AI Response:', responseText);
+
+        // Parse the JSON array from the response
+        try {
+            // Try to extract JSON array from response
+            const jsonMatch = responseText.match(/\[[\s\S]*?\]/);
+            if (jsonMatch) {
+                const ingredients = JSON.parse(jsonMatch[0]);
+                if (Array.isArray(ingredients)) {
+                    return {
+                        ingredients: ingredients.map((ing: string) => ing.toLowerCase().trim()),
+                        debug: `Model: ${model}\nResponse: ${responseText}`
+                    };
+                }
+            }
+
+            // If we got here, we found a match but it wasn't an array, or no match
+            return {
+                ingredients: [],
+                debug: `Model: ${model}\nRaw Response (Parse Failed): ${responseText}`
+            };
+
+        } catch (parseError) {
+            console.error('Error parsing ingredients:', parseError);
+            return {
+                ingredients: [],
+                debug: `Model: ${model}\nParse Error: ${parseError}\nRaw Response: ${responseText}`
+            };
+        }
+    } catch (error) {
+        console.error('Error analyzing fridge image:', error);
+        throw error;
+    }
+}
+
 export interface SuggestedRecipe {
     title: string;
     description: string;
@@ -1217,7 +1317,7 @@ Appetizing, authentic texture. No text.`;
             const apiToken = settings.cloudflareApiToken?.trim();
 
             // Fix: Ensure we use a valid Cloudflare model. If the user switched from Gemini/OpenAI, 
-            // the model ID might be wrong.
+            // the model ID might be wrong (e.g. 'dall-e-3' or 'gemini-2.0').
             let modelId = (settings.imageModel || '').trim();
             if (!modelId.startsWith('@cf/')) {
                 console.warn('Invalid Cloudflare model ID detected:', modelId, 'Reverting to default Flux.');

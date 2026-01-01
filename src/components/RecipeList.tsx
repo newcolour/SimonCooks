@@ -6,7 +6,7 @@ import { RecipeCard } from './RecipeCard';
 import { Search, ChefHat, X, Grid, List, Clock, ChevronUp, ChevronDown, CheckSquare, Square, Trash2 } from 'lucide-react';
 import './RecipeList.css';
 
-type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai';
+type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai' | '5star';
 type ViewMode = 'grid' | 'list';
 type SortField = 'title' | 'cookingTime' | 'updatedAt' | 'calories';
 type SortDirection = 'asc' | 'desc';
@@ -19,6 +19,7 @@ interface RecipeListProps {
     onDeleteMultiple?: (ids: string[]) => Promise<void>;
     loading: boolean;
     language: Language;
+    onFilterChange?: (filter: FilterType) => void;
 }
 
 export function RecipeList({
@@ -28,7 +29,8 @@ export function RecipeList({
     onSelectRecipe,
     onDeleteMultiple,
     loading,
-    language
+    language,
+    onFilterChange
 }: RecipeListProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -107,6 +109,9 @@ export function RecipeList({
                 break;
             case 'ai':
                 result = result.filter(r => r.aiGenerated);
+                break;
+            case '5star':
+                result = result.filter(r => r.rating === 5);
                 break;
             default:
                 break;
@@ -297,6 +302,29 @@ export function RecipeList({
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Filters (visible when onFilterChange is provided) */}
+            {onFilterChange && (
+                <div className="mobile-filters">
+                    {([
+                        { id: 'all', label: 'All' },
+                        { id: 'food', label: t.recipe.food },
+                        { id: 'drink', label: t.recipe.drink },
+                        { id: '5star', label: '5 Stars' },
+                        { id: 'ai', label: t.home.aiGenerated },
+                        { id: 'quick', label: t.filters.quick },
+                        { id: 'lowcalorie', label: t.filters.lowCalorie }
+                    ] as const).map((opt) => (
+                        <button
+                            key={opt.id}
+                            className={`filter-chip ${filter === opt.id ? 'active' : ''}`}
+                            onClick={() => onFilterChange(opt.id as FilterType)}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Recipe Content */}
             <div className="recipe-list-content">

@@ -46,6 +46,7 @@ export interface BaseRecipe {
     createdAt: string;
     updatedAt: string;
     flavorProfile?: FlavorProfile;
+    rating?: number; // 0-5 stars
 }
 
 export interface FoodRecipe extends BaseRecipe {
@@ -96,6 +97,7 @@ export interface AISettings {
     imageApiKey?: string;
     cloudflareAccountId?: string;
     cloudflareApiToken?: string;
+    visionTemperature?: number; // Temperature for image analysis (0.0-1.0)
 }
 
 export interface AppSettings {
