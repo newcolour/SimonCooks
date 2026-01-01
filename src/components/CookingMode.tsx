@@ -62,9 +62,14 @@ export function CookingMode({ recipe, aiSettings, language, onClose }: CookingMo
         translateIfNeeded();
     }, [recipe, language, aiSettings]);
 
-    const steps = displayRecipe.instructions
+    const steps = (displayRecipe.instructions || '')
         .split(/\n+/)
         .filter(step => step.trim().length > 0);
+
+    // Fallback if no steps found
+    if (steps.length === 0) {
+        steps.push(language === 'it' ? "Nessuna istruzione disponibile." : "No instructions available.");
+    }
 
     /* ============================================================
      * VOICE RECOGNITION - DISABLED
