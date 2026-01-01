@@ -508,7 +508,7 @@ export async function validateDrinkRecipe(settings: AISettings, recipe: any, lan
 
     const systemPrompt = "You are a quality control assistant for a bar. You fix recipe scaling errors. Output raw JSON only.";
 
-    let response: string;
+    let response: any;
     try {
         switch (settings.provider) {
             case 'openai':
@@ -536,6 +536,17 @@ export async function validateDrinkRecipe(settings: AISettings, recipe: any, lan
         }
 
         console.log('[AI] Received validation response. Parsing...');
+
+        // Safety check for response type
+        if (typeof response !== 'string') {
+            console.warn('[AI] Response is not a string:', typeof response);
+            if (response && typeof response === 'object') {
+                // If it is already an object, assume it is the parsed JSON
+                return { ...recipe, ...response };
+            }
+            return recipe;
+        }
+
         const jsonMatch = response.match(/```json?\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const fixed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
