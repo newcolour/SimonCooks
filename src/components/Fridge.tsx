@@ -17,7 +17,8 @@ import {
     ArrowRight,
     Camera as CameraIcon,
     Loader,
-    ImageUp
+    ImageUp,
+    Eye
 } from 'lucide-react';
 import './Fridge.css';
 
@@ -73,6 +74,10 @@ export function Fridge({
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<string | null>(null);
     const [showDebug, setShowDebug] = useState(false);
+    // Image preview state
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
+    const [showImagePreview, setShowImagePreview] = useState(false);
     const t = getTranslation(language);
 
     const isMobile = Capacitor.isNativePlatform();
@@ -131,6 +136,10 @@ export function Fridge({
             setDebugInfo(result.debug || null);
 
             if (result.ingredients.length > 0) {
+                // Store for preview
+                setCapturedImage(`data:image/jpeg;base64,${photo.base64String}`);
+                setDetectedIngredients(result.ingredients);
+
                 // Add detected ingredients (avoid duplicates)
                 const newIngredients = result.ingredients.filter(
                     ing => !ingredients.includes(ing.toLowerCase())
@@ -195,6 +204,10 @@ export function Fridge({
             setDebugInfo(result.debug || null);
 
             if (result.ingredients.length > 0) {
+                // Store for preview
+                setCapturedImage(`data:image/jpeg;base64,${resizedBase64}`);
+                setDetectedIngredients(result.ingredients);
+
                 const newIngredients = result.ingredients.filter(
                     ing => !ingredients.includes(ing.toLowerCase())
                 );
@@ -366,6 +379,21 @@ export function Fridge({
                         </div>
                     )}
 
+                    {/* View analyzed image button */}
+                    {capturedImage && detectedIngredients.length > 0 && (
+                        <button
+                            className="view-image-btn"
+                            onClick={() => setShowImagePreview(true)}
+                        >
+                            <Eye size={16} />
+                            <span>
+                                {language === 'it'
+                                    ? 'Visualizza immagine analizzata'
+                                    : 'View analyzed image'}
+                            </span>
+                        </button>
+                    )}
+
                     {ingredients.length > 0 && (
                         <div className="ingredients-list">
                             {ingredients.map(ing => (
@@ -476,6 +504,31 @@ export function Fridge({
                     </div>
                 )}
             </div>
+
+            {/* Image Preview Modal */}
+            {showImagePreview && capturedImage && (
+                <div className="image-preview-modal" onClick={() => setShowImagePreview(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className="close-modal-btn"
+                            onClick={() => setShowImagePreview(false)}
+                            aria-label="Close"
+                        >
+                            <X size={24} />
+                        </button>
+                        <div className="image-container">
+                            <img src={capturedImage} alt="Analyzed fridge" />
+                            <div className="ingredient-labels">
+                                {detectedIngredients.map((ing, idx) => (
+                                    <div key={idx} className="ingredient-label">
+                                        {ing}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
