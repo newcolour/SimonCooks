@@ -503,6 +503,7 @@ export async function suggestRecipe(settings: AISettings, existingRecipes: Recip
 // Validation helper for drink portions
 export async function validateDrinkRecipe(settings: AISettings, recipe: any, language: string): Promise<SuggestedRecipe> {
     console.log('[AI] Validating drink portions...');
+    console.log(`[AI] Using provider: ${settings.provider}`);
     const prompt = `Review this drink recipe and correct any inconsistencies between "servings" and ingredient amounts:\n${JSON.stringify(recipe, null, 2)}\n\nPROBLEM: Often recipes say "4 servings" but ingredients are for 1 serving (e.g. 60ml gin total). \n\nACTION:\n1. Check if ingredients correspond to a SINGLE drink (standard cocktail).\n2. If "servings" > 1 but ingredients are single-portion, MULTIPLY the ingredients by the serving count.\n3. OR set servings to 1 if that was the intent.\n4. Ensure the output JSON is valid and matches the input structure.\n\nRespond ONLY with the corrected JSON. Keep string values in the original language (${language}).`;
 
     const systemPrompt = "You are a quality control assistant for a bar. You fix recipe scaling errors. Output raw JSON only.";
@@ -534,6 +535,7 @@ export async function validateDrinkRecipe(settings: AISettings, recipe: any, lan
                 return recipe;
         }
 
+        console.log('[AI] Received validation response. Parsing...');
         const jsonMatch = response.match(/```json?\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const fixed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
