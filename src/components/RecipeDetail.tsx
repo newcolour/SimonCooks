@@ -271,10 +271,8 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
             if (hasChanges) {
                 setValidationSuggestion(validatedRecipe);
             } else {
-                // Optional: Toast or Alert
                 console.log('No validation changes needed');
-                // You could add a toast here if you have a toast system
-                // alert(language === 'it' ? 'Nessuna modifica suggerita' : 'No changes suggested');
+                alert(language === 'it' ? 'Nessuna modifica suggerita.' : 'No changes suggested. Recipe looks good!');
             }
         } catch (e) {
             console.error("Validation failed", e);
