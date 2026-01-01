@@ -4,7 +4,7 @@ import { get, set } from 'idb-keyval';
 const SHOPPING_STORAGE_KEY = 'simoncooks_shopping';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
-import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutrition, calculateFlavorProfile, mergeShoppingList, simpleShoppingMerge, type SuggestedRecipe } from '../services/aiService';
+import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutrition, calculateFlavorProfile, mergeShoppingList, simpleShoppingMerge, validateDrinkRecipe, type SuggestedRecipe } from '../services/aiService';
 import type { WinePairingSuggestion, WinePairing } from '../services/aiService';
 import { FlavorChart } from './FlavorChart';
 import { RemixModal } from './RemixModal';
@@ -54,6 +54,7 @@ interface RecipeDetailProps {
 
 export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe, onSaveNewRecipe, aiSettings, language, isFocusMode, onToggleFocus }: RecipeDetailProps) {
     const [generatingImage, setGeneratingImage] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
     const [showRemixModal, setShowRemixModal] = useState(false);
     const [imageError, setImageError] = useState<string | null>(null);
     const [adjustedServings, setAdjustedServings] = useState<number>(recipe?.servings || 4);
@@ -253,6 +254,25 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
             </div>
         );
     }
+
+    const handleValidate = async () => {
+        if (!activeRecipe || !aiSettings || !onUpdateRecipe) return;
+        setIsValidating(true);
+        try {
+            const validated = await validateDrinkRecipe(aiSettings, activeRecipe, language);
+            await onUpdateRecipe(validated as Recipe);
+        } catch (e) {
+            console.error("Validation failed", e);
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const handleSwipeRight = () => {
+        if (window.confirm(`${t.recipe.deleteConfirm} "${recipe.title}"?`)) {
+            onDelete();
+        }
+    };
 
     const handleDelete = () => {
         if (window.confirm(`${t.recipe.deleteConfirm} "${recipe.title}"?`)) {
@@ -497,6 +517,20 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                         >
                             <Sparkles size={18} />
                             <span>Remix</span>
+                        </button>
+                    )}
+
+                    {/* Validate Button (Drinks Only) */}
+                    {activeRecipe?.type === 'drink' && aiSettings && onUpdateRecipe && (
+                        <button
+                            className="action-btn validate"
+                            onClick={handleValidate}
+                            disabled={isValidating}
+                            title={language === 'it' ? 'Verifica Porzioni' : 'Validate Portions'}
+                            style={{ marginRight: '8px' }}
+                        >
+                            {isValidating ? <Loader size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+                            <span>{language === 'it' ? 'Verifica' : 'Validate'}</span>
                         </button>
                     )}
 

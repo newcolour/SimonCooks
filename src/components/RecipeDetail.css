@@ -180,6 +180,15 @@
     cursor: wait;
 }
 
+.action-btn.validate {
+    background: rgba(14, 165, 233, 0.15);
+    color: #0ea5e9;
+}
+
+.action-btn.validate:hover {
+    background: rgba(14, 165, 233, 0.25);
+}
+
 /* Content */
 .recipe-detail-content {
     flex: 1;
