@@ -501,7 +501,7 @@ export async function suggestRecipe(settings: AISettings, existingRecipes: Recip
 }
 
 // Validation helper for drink portions
-export async function validateDrinkRecipe(settings: AISettings, recipe: any, language: string): Promise<SuggestedRecipe> {
+export async function validateDrinkRecipe(settings: AISettings, recipe: any, _language: string): Promise<SuggestedRecipe> {
     console.log('[AI] Validating drink portions (fast mode)...');
     console.log(`[AI] Using provider: ${settings.provider}`);
 
