@@ -46,6 +46,7 @@ export interface BaseRecipe {
     createdAt: string;
     updatedAt: string;
     flavorProfile?: FlavorProfile;
+    rating?: number; // 0-5 stars
 }
 
 export interface FoodRecipe extends BaseRecipe {

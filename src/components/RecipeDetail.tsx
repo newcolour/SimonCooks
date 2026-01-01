@@ -34,7 +34,8 @@ import {
     Maximize2,
     Minimize2,
     ShoppingCart,
-    PlayCircle
+    PlayCircle,
+    Star
 } from 'lucide-react';
 import './RecipeDetail.css';
 
@@ -404,6 +405,20 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
         }
     };
 
+    const handleRate = async (rating: number) => {
+        if (!recipe || !onUpdateRecipe) return;
+        // Toggle off if clicking the same rating
+        const newRating = recipe.rating === rating ? 0 : rating;
+
+        const updated = { ...recipe, rating: newRating };
+        await onUpdateRecipe(updated);
+
+        // Update local translated state if active
+        if (translatedRecipe) {
+            setTranslatedRecipe({ ...translatedRecipe, rating: newRating });
+        }
+    };
+
     // Touch Handling for Swipe Back
     const minSwipeDistance = 100;
 
@@ -620,6 +635,21 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
 
                         {activeRecipe?.description && (
                             <p className="recipe-description">{activeRecipe.description}</p>
+                        )}
+
+                        {/* Rating UI */}
+                        {onUpdateRecipe && (
+                            <div className="recipe-rating">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                        key={star}
+                                        size={24}
+                                        className={`rating-star ${activeRecipe?.rating && activeRecipe.rating >= star ? 'filled' : ''}`}
+                                        onClick={() => handleRate(star)}
+                                        fill={activeRecipe?.rating && activeRecipe.rating >= star ? "currentColor" : "none"}
+                                    />
+                                ))}
+                            </div>
                         )}
 
                         <div className="recipe-meta">
