@@ -164,6 +164,8 @@ body.mobile-platform .app-main {
   margin-left: 0;
   /* Accommodate bottom nav */
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+  /* Accommodate status bar */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Full width for the main content when no panel is open */
@@ -191,6 +193,8 @@ body.mobile-platform .right-panel {
   bottom: calc(80px + env(safe-area-inset-bottom, 20px));
   z-index: 100;
   background: var(--color-bg-primary);
+  /* Accommodate status bar in panel */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Hide the empty "Select a recipe" panel on mobile */
