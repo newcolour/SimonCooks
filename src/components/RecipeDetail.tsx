@@ -10,6 +10,7 @@ import { FlavorChart } from './FlavorChart';
 import { RemixModal } from './RemixModal';
 import { ValidationConfirmModal } from './ValidationConfirmModal';
 import { CookingMode } from './CookingMode';
+import { Share } from '@capacitor/share';
 import {
     Clock,
     Users,
@@ -33,6 +34,7 @@ import {
     Martini,
     Snowflake,
     Maximize2,
+    Share2,
     Minimize2,
     ShoppingCart,
     PlayCircle,
@@ -283,6 +285,37 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
 
 
 
+    const handleShare = async () => {
+        if (!activeRecipe) return;
+
+        const ingredientList = activeRecipe.ingredients
+            .map(i => `- ${i.amount} ${i.unit} ${i.name}`)
+            .join('\n');
+
+        const text = `${activeRecipe.title}\n\n` +
+            `${t.recipe.ingredients}:\n${ingredientList}\n\n` +
+            `${t.recipe.instructions}:\n${activeRecipe.instructions}`;
+
+        try {
+            await Share.share({
+                title: activeRecipe.title,
+                text: text,
+                dialogTitle: language === 'it' ? 'Condividi Ricetta' : 'Share Recipe',
+            });
+        } catch (e: any) {
+            console.log('Share error', e);
+            // Fallback to clipboard if share not supported or failed (but not canceled)
+            if (e.message !== 'Share canceled' && e.name !== 'AbortError') {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    alert(language === 'it' ? 'Ricetta copiata negli appunti!' : 'Recipe copied to clipboard!');
+                } catch (err) {
+                    console.error('Clipboard failed', err);
+                }
+            }
+        }
+    };
+
     const handleDelete = () => {
         if (window.confirm(`${t.recipe.deleteConfirm} "${recipe.title}"?`)) {
             onDelete();
@@ -531,6 +564,16 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                             <span>{translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}</span>
                         </button>
                     )}
+
+                    {/* Share Button */}
+                    <button
+                        className="action-btn share"
+                        onClick={handleShare}
+                        title={language === 'it' ? 'Condividi' : 'Share'}
+                        style={{ marginRight: '8px' }}
+                    >
+                        <Share2 size={18} />
+                    </button>
                     {/* Remix Button (Drinks Only) */}
                     {activeRecipe?.type === 'drink' && aiSettings && onSaveNewRecipe && (
                         <button
