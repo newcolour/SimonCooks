@@ -1212,13 +1212,26 @@ Appetizing, authentic texture. No text.`;
                 });
             }
 
-            // Fallback for browser dev mode (will likely fail with CORS)
-            const accountId = settings.cloudflareAccountId;
-            const apiToken = settings.cloudflareApiToken;
-            const modelId = settings.imageModel || '@cf/black-forest-labs/flux-1-schnell';
+            // Fallback for browser/mobile (direct API call)
+            const accountId = settings.cloudflareAccountId?.trim();
+            const apiToken = settings.cloudflareApiToken?.trim();
+
+            // Fix: Ensure we use a valid Cloudflare model. If the user switched from Gemini/OpenAI, 
+            // the model ID might be wrong.
+            let modelId = (settings.imageModel || '').trim();
+            if (!modelId.startsWith('@cf/')) {
+                console.warn('Invalid Cloudflare model ID detected:', modelId, 'Reverting to default Flux.');
+                modelId = '@cf/black-forest-labs/flux-1-schnell';
+            }
+
+            if (!accountId) throw new Error('Cloudflare Account ID is missing. Please check Settings.');
+            if (!apiToken) throw new Error('Cloudflare API Token is missing. Please check Settings.');
+
+            const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`;
+            console.log('Attempting verify Cloudflare URL:', url);
 
             const response = await fetch(
-                `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`,
+                url,
                 {
                     method: 'POST',
                     headers: {
@@ -1234,7 +1247,8 @@ Appetizing, authentic texture. No text.`;
 
             if (!response.ok) {
                 const errText = await response.text();
-                throw new Error(`Cloudflare Error: ${response.status} ${errText}`);
+                // Include the URL in the error to verify what is actually being called
+                throw new Error(`Cloudflare Error (${response.status}) at ${url}: ${errText}`);
             }
 
             const data = await response.json();

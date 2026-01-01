@@ -4,6 +4,10 @@
     margin: 0 auto;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .fridge-header {
