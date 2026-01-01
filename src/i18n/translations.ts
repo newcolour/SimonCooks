@@ -10,6 +10,8 @@ export interface Translations {
         aiSuggestions: string;
         settings: string;
         newRecipe: string;
+        shopping: string;
+        fridge: string;
     };
     // Filters
     filters: {
@@ -231,6 +233,51 @@ export interface Translations {
         success: string;
         error: string;
     };
+    // Shopping List
+    shopping: {
+        title: string;
+        subtitle: string;
+        addPlaceholder: string;
+        aiMergeHint: string;
+        itemsChecked: string;
+        emptyList: string;
+        emptyListHint: string;
+        clearChecked: string;
+        clearAll: string;
+        clearAllConfirm: string;
+        addedToList: string;
+        completed: string;
+        movedToCompleted: string;
+    };
+    // Fridge
+    fridge: {
+        title: string;
+        subtitle: string;
+        inputPlaceholder: string;
+        resultsTitle: string;
+        matched: string;
+        missing: string;
+        noMatches: string;
+        generateWithAI: string;
+        wantSomethingNew: string;
+        generateNew: string;
+        emptyTitle: string;
+        emptySubtitle: string;
+    };
+    // Cooking Mode
+    cooking: {
+        start: string;
+        step: string;
+        ingredients: string;
+        speak: string;
+        listening: string;
+        askPlaceholder: string;
+        close: string;
+        completed: string;
+        enjoy: string;
+        next: string;
+        prev: string;
+    };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -241,6 +288,8 @@ export const translations: Record<Language, Translations> = {
             aiSuggestions: 'AI Suggestions',
             settings: 'Settings',
             newRecipe: 'New Recipe',
+            shopping: 'Shopping List',
+            fridge: "What's in my Fridge?",
         },
         filters: {
             all: 'All',
@@ -455,6 +504,48 @@ export const translations: Record<Language, Translations> = {
             success: 'Recipe imported successfully!',
             error: 'Failed to import recipe',
         },
+        shopping: {
+            title: 'Shopping List',
+            subtitle: 'Your smart, AI-powered shopping list',
+            addPlaceholder: 'Add item...',
+            aiMergeHint: 'AI will merge duplicates automatically',
+            itemsChecked: 'checked',
+            emptyList: 'Your shopping list is empty',
+            emptyListHint: 'Add items above or from any recipe',
+            clearChecked: 'Clear Checked',
+            clearAll: 'Clear All',
+            clearAllConfirm: 'Clear entire shopping list?',
+            addedToList: 'Added to shopping list',
+            completed: 'Completed Items',
+            movedToCompleted: 'Moved to completed',
+        },
+        fridge: {
+            title: "What's in my Fridge?",
+            subtitle: 'Enter ingredients you have and find matching recipes',
+            inputPlaceholder: 'Type an ingredient...',
+            resultsTitle: 'Matching Recipes',
+            matched: 'matched',
+            missing: 'needed',
+            noMatches: 'No matching recipes found',
+            generateWithAI: 'Generate Recipe with AI',
+            wantSomethingNew: 'Want something new?',
+            generateNew: 'Create New Recipe with AI',
+            emptyTitle: 'Start by adding ingredients',
+            emptySubtitle: "Enter what you have in your fridge and we'll find recipes you can make",
+        },
+        cooking: {
+            start: 'Start Cooking',
+            step: 'Step',
+            ingredients: 'Ingredients',
+            speak: 'Read aloud',
+            listening: 'Listening...',
+            askPlaceholder: 'Ask a question about this step or recipe...',
+            close: 'Exit Cooking Mode',
+            completed: 'All steps completed!',
+            enjoy: 'Enjoy your meal!',
+            next: 'Next',
+            prev: 'Previous',
+        },
     },
     it: {
         nav: {
@@ -463,6 +554,8 @@ export const translations: Record<Language, Translations> = {
             aiSuggestions: 'Suggerimenti IA',
             settings: 'Impostazioni',
             newRecipe: 'Nuova Ricetta',
+            shopping: 'Lista della Spesa',
+            fridge: 'Cosa ho in Frigo?',
         },
         filters: {
             all: 'Tutte',
@@ -676,6 +769,48 @@ export const translations: Record<Language, Translations> = {
             importing: 'Importazione ricetta...',
             success: 'Ricetta importata con successo!',
             error: 'Impossibile importare la ricetta',
+        },
+        shopping: {
+            title: 'Lista della Spesa',
+            subtitle: 'La tua lista della spesa intelligente con IA',
+            addPlaceholder: 'Aggiungi articolo...',
+            aiMergeHint: 'L\'IA unirà automaticamente i duplicati',
+            itemsChecked: 'selezionati',
+            emptyList: 'La tua lista della spesa è vuota',
+            emptyListHint: 'Aggiungi articoli sopra o da qualsiasi ricetta',
+            clearChecked: 'Rimuovi Selezionati',
+            clearAll: 'Svuota Tutto',
+            clearAllConfirm: 'Svuotare l\'intera lista della spesa?',
+            addedToList: 'Aggiunto alla lista della spesa',
+            completed: 'Articoli Completati',
+            movedToCompleted: 'Spostato nei completati',
+        },
+        fridge: {
+            title: 'Cosa ho in Frigo?',
+            subtitle: 'Inserisci gli ingredienti che hai e trova ricette corrispondenti',
+            inputPlaceholder: 'Scrivi un ingrediente...',
+            resultsTitle: 'Ricette Corrispondenti',
+            matched: 'corrispondenti',
+            missing: 'mancanti',
+            noMatches: 'Nessuna ricetta corrispondente trovata',
+            generateWithAI: 'Genera Ricetta con IA',
+            wantSomethingNew: 'Vuoi qualcosa di nuovo?',
+            generateNew: 'Crea Nuova Ricetta con IA',
+            emptyTitle: 'Inizia aggiungendo ingredienti',
+            emptySubtitle: 'Inserisci cosa hai in frigo e troveremo le ricette che puoi preparare',
+        },
+        cooking: {
+            start: 'Inizia a Cucinare',
+            step: 'Passo',
+            ingredients: 'Ingredienti',
+            speak: 'Leggi ad alta voce',
+            listening: 'Ascolto...',
+            askPlaceholder: 'Fai una domanda su questo passo o sulla ricetta...',
+            close: 'Esci dalla Modalità Cucina',
+            completed: 'Tutti i passi completati!',
+            enjoy: 'Buon appetito!',
+            next: 'Avanti',
+            prev: 'Indietro',
         },
     },
 };

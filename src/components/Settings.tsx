@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { AppSettings, AISettings } from '../types';
+import type { AppSettings, AISettings, Recipe } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
 import { AI_PROVIDERS, IMAGE_PROVIDERS, PROVIDER_MODELS, IMAGE_MODELS, fetchOllamaModels, type OllamaModel } from '../services/aiService';
@@ -15,7 +15,10 @@ import {
     AlertCircle,
     ExternalLink,
     RefreshCw,
-    Cpu
+    Cpu,
+    Database,
+    Download,
+    Upload
 } from 'lucide-react';
 import './Settings.css';
 
@@ -133,13 +136,18 @@ interface SettingsProps {
     onUpdateTheme: (theme: AppSettings['theme']) => Promise<void>;
     onUpdateLanguage: (language: AppSettings['language']) => Promise<void>;
     onReset: () => Promise<void>;
+    recipes: Recipe[];
+    onImportRecipes: (recipes: Recipe[]) => Promise<void>;
 }
 
-export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage, onReset }: SettingsProps) {
+export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage, onReset, recipes, onImportRecipes }: SettingsProps) {
     const [localSettings, setLocalSettings] = useState<AISettings>(settings.ai);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [exportType, setExportType] = useState<'all' | 'food' | 'drink'>('all');
+    const [isExporting, setIsExporting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Default language to English if not set
     const language = settings.language || 'en';
@@ -166,6 +174,89 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
         if (window.confirm(t.recipe.deleteConfirm)) { // Reusing confirmation message or add new one? I'll use deleteConfirm for now but better "Are you sure?"
             await onReset();
             setLocalSettings(settings.ai);
+        }
+    };
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.recipe.export({ type: exportType });
+                if (result.success) {
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                }
+            } else {
+                // Web/Mobile Fallback
+                const recipesToExport = exportType === 'all'
+                    ? recipes
+                    : recipes.filter(r => (exportType === 'food' ? r.type !== 'drink' : r.type === 'drink'));
+
+                const blob = new Blob([JSON.stringify(recipesToExport, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `recipes_export_${exportType}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Export failed");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleImport = async () => {
+        setIsImporting(true);
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.recipe.import();
+                if (result.success) {
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                }
+            } else {
+                // Web/Mobile Fallback
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'application/json';
+                input.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                        try {
+                            const text = await file.text();
+                            const data = JSON.parse(text);
+                            if (Array.isArray(data)) {
+                                await onImportRecipes(data);
+                                setSaved(true);
+                                setTimeout(() => setSaved(false), 3000);
+                            } else {
+                                setError("Invalid format: Not an array");
+                            }
+                        } catch (err) {
+                            setError("Invalid JSON file");
+                        } finally {
+                            setIsImporting(false);
+                        }
+                    } else {
+                        setIsImporting(false);
+                    }
+                };
+                input.click();
+                // Wait for user interaction? No, input.click() is async in UI but synchronous in execution flow. 
+                // We won't block here, but we set isImporting to false only in onchange or if no file (cancelled).
+                // Actually, cancellation is hard to detect with input type file.
+                // We'll set isImporting false immediately for web fallback usage flow or inside onchange.
+                // Better UX: keep it simple.
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Import failed");
+            setIsImporting(false);
         }
     };
 
@@ -540,6 +631,78 @@ export function Settings({ settings, onUpdateAI, onUpdateTheme, onUpdateLanguage
                                 {lang.flag} {lang.name}
                             </button>
                         ))}
+                    </div>
+                </section>
+
+                {/* Data Management Section */}
+                <section className="settings-section">
+                    <h2>
+                        <Database size={20} />
+                        Data Management
+                    </h2>
+                    <p className="section-description">
+                        Export your recipes to backup them or import recipes from a JSON file.
+                    </p>
+
+                    <div className="data-management-grid">
+                        <div className="export-section">
+                            <h3>Export Recipes</h3>
+                            <div className="radio-group">
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="exportType"
+                                        value="all"
+                                        checked={exportType === 'all'}
+                                        onChange={(e) => setExportType(e.target.value as any)}
+                                    />
+                                    All Recipes
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="exportType"
+                                        value="food"
+                                        checked={exportType === 'food'}
+                                        onChange={(e) => setExportType(e.target.value as any)}
+                                    />
+                                    Food Only
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="exportType"
+                                        value="drink"
+                                        checked={exportType === 'drink'}
+                                        onChange={(e) => setExportType(e.target.value as any)}
+                                    />
+                                    Drinks Only
+                                </label>
+                            </div>
+                            <button
+                                className="action-btn export-btn"
+                                onClick={handleExport}
+                                disabled={isExporting}
+                            >
+                                <Download size={18} />
+                                {isExporting ? "Exporting..." : "Export to JSON"}
+                            </button>
+                        </div>
+
+                        <div className="import-section">
+                            <h3>Import Recipes</h3>
+                            <p className="description-text">
+                                Import recipes from a previously exported JSON file. Existing recipes with the same ID will be updated.
+                            </p>
+                            <button
+                                className="action-btn import-btn"
+                                onClick={handleImport}
+                                disabled={isImporting}
+                            >
+                                <Upload size={18} />
+                                {isImporting ? "Importing..." : "Import from JSON"}
+                            </button>
+                        </div>
                     </div>
                 </section>
 

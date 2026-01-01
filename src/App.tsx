@@ -11,14 +11,17 @@ import { Settings } from './components/Settings';
 import { AISuggestions } from './components/AISuggestions';
 import { WebImportModal } from './components/WebImportModal';
 import { AppTour } from './components/AppTour';
+import { ShoppingList } from './components/ShoppingList';
+import { Fridge } from './components/Fridge';
+import { BottomNav } from './components/BottomNav';
 import './App.css';
 
-type ViewType = 'home' | 'recipes' | 'ai-suggest' | 'settings';
+type ViewType = 'home' | 'recipes' | 'ai-suggest' | 'settings' | 'shopping' | 'fridge';
 type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai';
 type PanelType = 'detail' | 'editor' | 'none';
 
 function App() {
-  const { recipes, loading, createRecipe, updateRecipe, deleteRecipe, deleteMultipleRecipes } = useRecipes();
+  const { recipes, loading, createRecipe, updateRecipe, deleteRecipe, deleteMultipleRecipes, importRecipes } = useRecipes();
   const { settings, updateAISettings, updateTheme, updateLanguage, resetSettings } = useSettings();
 
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -29,6 +32,7 @@ function App() {
   const [webImportOpen, setWebImportOpen] = useState(false);
   const [tourDismissed, setTourDismissed] = useState(false);
   const [isFocusMode, setFocusMode] = useState(false);
+  const [fridgeIngredients, setFridgeIngredients] = useState<string[]>([]);
 
   // Tour is visible when settings are loaded, tour hasn't been completed, and user hasn't dismissed it this session
   const showTour = !loading && settings.tourCompleted === false && !tourDismissed;
@@ -177,6 +181,7 @@ function App() {
             onSaveRecipe={createRecipe}
             onConfigureAI={() => setCurrentView('settings')}
             language={settings.language || 'en'}
+            initialIngredients={fridgeIngredients}
           />
         );
       case 'settings':
@@ -187,6 +192,31 @@ function App() {
             onUpdateTheme={updateTheme}
             onUpdateLanguage={updateLanguage}
             onReset={resetSettings}
+            recipes={recipes}
+            onImportRecipes={importRecipes}
+          />
+        );
+      case 'shopping':
+        return (
+          <ShoppingList
+            aiSettings={settings.ai}
+            language={settings.language || 'en'}
+          />
+        );
+      case 'fridge':
+        return (
+          <Fridge
+            recipes={recipes}
+            aiSettings={settings.ai}
+            language={settings.language || 'en'}
+            onSelectRecipe={(recipe) => {
+              handleSelectRecipe(recipe);
+              setCurrentView('recipes');
+            }}
+            onGenerateWithAI={(ingredients) => {
+              setFridgeIngredients(ingredients);
+              setCurrentView('ai-suggest');
+            }}
           />
         );
       default:
@@ -257,6 +287,11 @@ function App() {
         onNewRecipe={handleNewRecipe}
         onWebImport={() => setWebImportOpen(true)}
         recipeCount={recipes.length}
+        language={settings.language || 'en'}
+      />
+      <BottomNav
+        currentView={currentView}
+        onViewChange={handleViewChange}
         language={settings.language || 'en'}
       />
       <main className="app-main">

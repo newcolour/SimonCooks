@@ -1,6 +1,11 @@
-const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Database = require('better-sqlite3');
+
+// Enable speech recognition and synthesis
+app.commandLine.appendSwitch('enable-speech-dispatcher');
+app.commandLine.appendSwitch('enable-features', 'WebSpeechAPI');
 
 let mainWindow;
 let db;
@@ -50,6 +55,14 @@ function initDatabase() {
       value TEXT NOT NULL
     );
     
+    CREATE TABLE IF NOT EXISTS shopping_list (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount TEXT,
+      unit TEXT,
+      checked INTEGER DEFAULT 0,
+      createdAt TEXT NOT NULL
+    );
   `);
 
   // Migrations for existing columns
@@ -140,7 +153,8 @@ function createWindow() {
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
+    // Use __dirname to reliably locate dist/index.html relative to main.cjs
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
   mainWindow.on('closed', () => {
@@ -151,6 +165,25 @@ function createWindow() {
 app.whenReady().then(() => {
   initDatabase();
   createWindow();
+
+  // Handle permission requests (for microphone/speech recognition)
+  const { session } = require('electron');
+
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    // Allow microphone for speech recognition
+    const allowedPermissions = ['media', 'microphone', 'audioCapture'];
+    if (allowedPermissions.includes(permission)) {
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+
+  // Also handle permission checks
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    const allowedPermissions = ['media', 'microphone', 'audioCapture'];
+    return allowedPermissions.includes(permission);
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -534,4 +567,167 @@ ipcMain.handle('app:fetchUrl', async (_, url) => {
     console.error('Fetch error:', error);
     throw new Error(error.message);
   }
+});
+
+// Shopping List Handlers
+ipcMain.handle('shoppingList:getAll', () => {
+  const items = db.prepare('SELECT * FROM shopping_list ORDER BY checked ASC, createdAt DESC').all();
+  return items.map(item => ({
+    ...item,
+    checked: Boolean(item.checked)
+  }));
+});
+
+ipcMain.handle('shoppingList:addItem', (_, item) => {
+  const stmt = db.prepare(`
+    INSERT INTO shopping_list (id, name, amount, unit, checked, createdAt)
+    VALUES (?, ?, ?, ?, 0, ?)
+  `);
+  const now = new Date().toISOString();
+  stmt.run(item.id, item.name, item.amount || '', item.unit || '', now);
+  return { ...item, checked: false, createdAt: now };
+});
+
+ipcMain.handle('shoppingList:addMultiple', (_, items) => {
+  const stmt = db.prepare(`
+    INSERT INTO shopping_list (id, name, amount, unit, checked, createdAt)
+    VALUES (?, ?, ?, ?, 0, ?)
+  `);
+  const now = new Date().toISOString();
+  const results = [];
+  for (const item of items) {
+    stmt.run(item.id, item.name, item.amount || '', item.unit || '', now);
+    results.push({ ...item, checked: false, createdAt: now });
+  }
+  return results;
+});
+
+ipcMain.handle('shoppingList:updateItem', (_, item) => {
+  const stmt = db.prepare(`
+    UPDATE shopping_list SET name = ?, amount = ?, unit = ?, checked = ? WHERE id = ?
+  `);
+  stmt.run(item.name, item.amount || '', item.unit || '', item.checked ? 1 : 0, item.id);
+  return item;
+});
+
+ipcMain.handle('shoppingList:deleteItem', (_, id) => {
+  db.prepare('DELETE FROM shopping_list WHERE id = ?').run(id);
+  return true;
+});
+
+ipcMain.handle('shoppingList:clearChecked', () => {
+  db.prepare('DELETE FROM shopping_list WHERE checked = 1').run();
+  return true;
+});
+
+ipcMain.handle('shoppingList:clearAll', () => {
+  db.prepare('DELETE FROM shopping_list').run();
+  return true;
+});
+
+ipcMain.handle('shoppingList:replaceAll', (_, items) => {
+  // Clear and replace entire list (used after AI merge)
+  db.prepare('DELETE FROM shopping_list').run();
+  const stmt = db.prepare(`
+    INSERT INTO shopping_list (id, name, amount, unit, checked, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const now = new Date().toISOString();
+  for (const item of items) {
+    stmt.run(item.id, item.name, item.amount || '', item.unit || '', item.checked ? 1 : 0, item.createdAt || now);
+  }
+  return items;
+});
+
+ipcMain.handle('recipe:export', async (_, { type }) => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Export Recipes',
+    defaultPath: `recipes_export_${type}_${new Date().toISOString().split('T')[0]}.json`,
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+
+  if (!filePath) return { success: false, cancelled: true };
+
+  let query = 'SELECT * FROM recipes';
+  if (type === 'food') query += " WHERE type = 'food' OR type IS NULL";
+  if (type === 'drink') query += " WHERE type = 'drink'";
+
+  const recipes = db.prepare(query).all().map(r => ({
+    ...r,
+    ingredients: JSON.parse(r.ingredients || '[]'),
+    allergens: JSON.parse(r.allergens || '[]'),
+    categories: JSON.parse(r.categories || '[]'),
+    flavorProfile: r.flavorProfile ? JSON.parse(r.flavorProfile) : null,
+    nutrition: r.nutrition ? JSON.parse(r.nutrition) : null,
+    tools: r.tools ? JSON.parse(r.tools) : null,
+    aiVariants: r.aiVariants ? JSON.parse(r.aiVariants) : null,
+    aiGenerated: Boolean(r.aiGenerated),
+    isAlcoholic: Boolean(r.isAlcoholic)
+  }));
+
+  fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
+  return { success: true, count: recipes.length };
+});
+
+ipcMain.handle('recipe:import', async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    title: 'Import Recipes',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile']
+  });
+
+  if (!filePaths || filePaths.length === 0) return { success: false, cancelled: true };
+
+  const content = fs.readFileSync(filePaths[0], 'utf-8');
+  let recipes;
+  try {
+    recipes = JSON.parse(content);
+  } catch (e) {
+    throw new Error('Invalid JSON file');
+  }
+
+  if (!Array.isArray(recipes)) throw new Error('Invalid recipe format (not an array)');
+
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO recipes(
+      id, title, description, ingredients, instructions, cookingTime, servings, notes,
+      allergens, categories, imageUrl, nutrition, flavorProfile, sourceUrl, aiGenerated,
+      createdAt, updatedAt,
+      type, glassware, ice, tools, isAlcoholic, aiVariants
+    )
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertMany = db.transaction((recipes) => {
+    for (const r of recipes) {
+      stmt.run(
+        r.id,
+        r.title,
+        r.description || '',
+        JSON.stringify(r.ingredients),
+        r.instructions,
+        r.cookingTime || null,
+        r.servings || null,
+        r.notes || '',
+        JSON.stringify(r.allergens || []),
+        JSON.stringify(r.categories || []),
+        r.imageUrl || null,
+        r.nutrition ? JSON.stringify(r.nutrition) : null,
+        r.flavorProfile ? JSON.stringify(r.flavorProfile) : null,
+        r.sourceUrl || null,
+        r.aiGenerated ? 1 : 0,
+        r.createdAt,
+        r.updatedAt,
+        r.type || 'food',
+        r.glassware || null,
+        r.ice || null,
+        r.tools ? JSON.stringify(r.tools) : null,
+        r.isAlcoholic ? 1 : 0,
+        r.aiVariants ? JSON.stringify(r.aiVariants) : null
+      );
+    }
+  });
+
+  insertMany(recipes);
+  return { success: true, count: recipes.length };
 });

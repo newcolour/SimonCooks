@@ -158,3 +158,22 @@
     background-position: 200% 0;
   }
 }
+
+/* Mobile Layout (< 768px) */
+@media (max-width: 768px) {
+  .app-main {
+    margin-left: 0;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* On mobile, when a panel (detail/editor) is open, hide the main list */
+  .main-content.with-panel {
+    display: none;
+  }
+
+  .right-panel {
+    flex: 1;
+    border-left: none;
+    width: 100%;
+  }
+}

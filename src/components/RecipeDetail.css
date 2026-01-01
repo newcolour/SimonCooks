@@ -64,7 +64,8 @@
 
 .recipe-detail-actions {
     display: flex;
-    gap: var(--spacing-sm);
+    gap: 4px;
+    align-items: center;
 }
 
 .action-btn {
@@ -76,6 +77,61 @@
     font-size: var(--font-size-sm);
     font-weight: 500;
     transition: all var(--transition-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* Non-tooltip buttons: always show label inline */
+.action-btn:not(.tooltip-btn) .action-label {
+    display: inline;
+}
+
+/* Tooltip buttons: icon only, label as popup on hover */
+.tooltip-btn {
+    padding: var(--spacing-sm);
+}
+
+.tooltip-btn .action-label {
+    display: block;
+    visibility: hidden;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+}
+
+.tooltip-btn:hover .action-label {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Ensure icon stays visible in tooltip buttons */
+.tooltip-btn svg {
+    position: relative;
+    z-index: 1;
+}
+
+/* Hide all labels on very small screens */
+@media (max-width: 600px) {
+    .action-label {
+        display: none !important;
+    }
+
+    .action-btn {
+        padding: var(--spacing-sm);
+    }
 }
 
 .action-btn.edit {
@@ -87,6 +143,16 @@
     background: var(--color-bg-hover);
 }
 
+/* Start Cooking button - prominent action */
+.action-btn.start-cooking {
+    background: var(--color-accent-primary);
+    color: white;
+}
+
+.action-btn.start-cooking:hover {
+    background: var(--color-accent-primary-hover);
+}
+
 .action-btn.delete {
     background: rgba(239, 68, 68, 0.15);
     color: var(--color-error);
@@ -94,6 +160,26 @@
 
 .action-btn.delete:hover {
     background: rgba(239, 68, 68, 0.25);
+}
+
+.action-btn.shopping {
+    background: var(--color-accent-muted);
+    color: var(--color-accent);
+}
+
+.action-btn.shopping:hover {
+    background: var(--color-accent);
+    color: white;
+}
+
+.action-btn.shopping.success {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.action-btn.shopping:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 /* Content */

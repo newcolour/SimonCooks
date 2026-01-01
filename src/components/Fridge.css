@@ -1,0 +1,390 @@
+.fridge {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.fridge-header {
+    margin-bottom: 2rem;
+}
+
+.fridge-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.fridge-title h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.fridge-title svg {
+    color: var(--accent-color);
+}
+
+.fridge-subtitle {
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.fridge-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Ingredient Input */
+.ingredient-input-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ingredient-input {
+    flex: 1;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.ingredient-input:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+}
+
+.add-ingredient-btn {
+    background: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    border-radius: 8px;
+    padding: 0 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.add-ingredient-btn:hover:not(:disabled) {
+    background: var(--color-accent-primary-hover);
+    transform: scale(1.05);
+}
+
+.add-ingredient-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ingredients-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.ingredient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.ingredient-chip button {
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.ingredient-chip button:hover {
+    opacity: 1;
+}
+
+/* Results */
+.fridge-results h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+.fridge-results h2 svg {
+    color: var(--color-accent-primary);
+}
+
+.match-count {
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-size: 1rem;
+}
+
+/* Recipe Match Cards */
+.recipe-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.match-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.match-card:hover {
+    border-color: var(--color-accent-primary);
+    transform: translateX(4px);
+}
+
+.match-image {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.match-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.match-image svg {
+    color: var(--text-secondary);
+    opacity: 0.3;
+}
+
+.match-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+}
+
+.match-badge[data-level="high"] {
+    background: #22c55e;
+}
+
+.match-badge[data-level="medium"] {
+    background: #f59e0b;
+}
+
+.match-badge[data-level="low"] {
+    background: #6b7280;
+}
+
+.match-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.match-info h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.match-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.match-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.match-details {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+}
+
+.match-details .matched {
+    color: #22c55e;
+}
+
+.match-details .missing {
+    color: var(--text-secondary);
+}
+
+.match-card .arrow {
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.match-card:hover .arrow {
+    opacity: 1;
+    color: var(--color-accent-primary);
+}
+
+/* No Matches */
+.no-matches {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.no-matches svg {
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.no-matches p {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.1rem;
+}
+
+.generate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-primary-hover));
+    color: var(--color-text-inverse);
+    border: none;
+    border-radius: 10px;
+    padding: 0.85rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+.generate-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--color-accent-primary);
+    color: var(--color-accent-primary);
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+}
+
+.generate-btn.secondary:hover {
+    background: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+}
+
+/* AI Generate Section */
+.ai-generate-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px dashed var(--border-color);
+}
+
+.ai-generate-section p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Empty State */
+.fridge-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.fridge-empty svg {
+    opacity: 0.2;
+    margin-bottom: 1.5rem;
+}
+
+.fridge-empty h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.fridge-empty p {
+    margin: 0;
+    max-width: 400px;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .fridge {
+        padding: 1rem;
+    }
+
+    .match-card {
+        flex-wrap: wrap;
+    }
+
+    .match-image {
+        width: 60px;
+        height: 60px;
+    }
+
+    .ai-generate-section {
+        flex-direction: column;
+        text-align: center;
+    }
+}

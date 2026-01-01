@@ -89,7 +89,13 @@
         }
       ],
       "category": "public.app-category.lifestyle",
-      "icon": "public/icon.icns"
+      "icon": "public/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSSpeechRecognitionUsageDescription": "We need access to speech recognition to enable voice commands while cooking.",
+        "NSMicrophoneUsageDescription": "We need access to the microphone for voice commands."
+      }
     },
     "win": {
       "target": "nsis",

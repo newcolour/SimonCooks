@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Recipe, AISettings } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
@@ -27,6 +27,7 @@ interface AISuggestionsProps {
     onSaveRecipe: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Recipe>;
     onConfigureAI: () => void;
     language: Language;
+    initialIngredients?: string[];
 }
 
 interface SuggestedRecipe {
@@ -61,20 +62,29 @@ export function AISuggestions({
     existingRecipes,
     onSaveRecipe,
     onConfigureAI,
-    language
+    language,
+    initialIngredients = []
 }: AISuggestionsProps) {
     const [loading, setLoading] = useState(false);
     const [generatingImage, setGeneratingImage] = useState(false);
     const [suggestion, setSuggestion] = useState<SuggestedRecipe | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
-    const [mode, setMode] = useState<'inspiration' | 'chef'>('inspiration');
-    const [includedIngredients, setIncludedIngredients] = useState<string[]>([]);
+    const [mode, setMode] = useState<'inspiration' | 'chef'>(initialIngredients.length > 0 ? 'chef' : 'inspiration');
+    const [includedIngredients, setIncludedIngredients] = useState<string[]>(initialIngredients);
     const [ingredientInput, setIngredientInput] = useState('');
     const [flavorProfile, setFlavorProfile] = useState('');
     const [recipeType, setRecipeType] = useState<'food' | 'drink'>('food');
     const [dishType, setDishType] = useState<string>('any');
     const t = getTranslation(language);
+
+    // Update ingredients if initialIngredients change (e.g., from fridge)
+    useEffect(() => {
+        if (initialIngredients.length > 0) {
+            setIncludedIngredients(initialIngredients);
+            setMode('chef');
+        }
+    }, [initialIngredients]);
 
     const needsApiKey = aiSettings.provider !== 'ollama' && !aiSettings.apiKey;
 

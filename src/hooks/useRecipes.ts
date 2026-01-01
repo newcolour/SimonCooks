@@ -13,6 +13,7 @@ interface UseRecipesReturn {
     searchRecipes: (query: string) => Promise<Recipe[]>;
     searchByIngredient: (ingredient: string) => Promise<Recipe[]>;
     refreshRecipes: () => Promise<void>;
+    importRecipes: (recipes: Recipe[]) => Promise<void>;
 }
 
 export function useRecipes(): UseRecipesReturn {
@@ -189,6 +190,45 @@ export function useRecipes(): UseRecipesReturn {
         }
     }, [recipes]);
 
+    const importRecipes = useCallback(async (newRecipes: Recipe[]) => {
+        try {
+            if (window.electronAPI) {
+                // For Electron, we ideally use the IPC bulk import, but if we have the data already:
+                // We can iterate and create. However, Electron's `recipe:import` handles file reading itself.
+                // This function might be used if we read file in frontend.
+                // Let's assume for now this is primarily for Web fallback or if we chose to read file in frontend.
+                // But specifically for the Web Fallback case:
+                console.warn("importRecipes called in Electron mode - consider using IPC");
+            } else {
+                // Fallback for web/android
+                const stored = localStorage.getItem('simoncooks_recipes');
+                const current = stored ? JSON.parse(stored) : [];
+
+                // Merge strategies: using ID as key
+                const currentIds = new Set(current.map((r: Recipe) => r.id));
+                const toAdd = newRecipes.filter(r => !currentIds.has(r.id));
+                const toUpdate = newRecipes.filter(r => currentIds.has(r.id));
+
+                let updated = [...current];
+                // Updates
+                if (toUpdate.length > 0) {
+                    updated = updated.map(r => {
+                        const newer = toUpdate.find(u => u.id === r.id);
+                        return newer || r;
+                    });
+                }
+                // Adds
+                updated = [...toAdd, ...updated];
+
+                localStorage.setItem('simoncooks_recipes', JSON.stringify(updated));
+                setRecipes(updated);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to import recipes');
+            throw err;
+        }
+    }, []);
+
     return {
         recipes,
         loading,
@@ -200,5 +240,7 @@ export function useRecipes(): UseRecipesReturn {
         searchRecipes,
         searchByIngredient,
         refreshRecipes: fetchRecipes,
+        importRecipes
     };
 }
+

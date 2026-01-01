@@ -19,6 +19,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getAll: () => ipcRenderer.invoke('settings:getAll'),
     },
 
+    // Shopping List operations
+    shoppingList: {
+        getAll: () => ipcRenderer.invoke('shoppingList:getAll'),
+        addItem: (item) => ipcRenderer.invoke('shoppingList:addItem', item),
+        addMultiple: (items) => ipcRenderer.invoke('shoppingList:addMultiple', items),
+        updateItem: (item) => ipcRenderer.invoke('shoppingList:updateItem', item),
+        deleteItem: (id) => ipcRenderer.invoke('shoppingList:deleteItem', id),
+        clearChecked: () => ipcRenderer.invoke('shoppingList:clearChecked'),
+        clearAll: () => ipcRenderer.invoke('shoppingList:clearAll'),
+        replaceAll: (items) => ipcRenderer.invoke('shoppingList:replaceAll', items),
+    },
+
     // Platform info
     platform: process.platform,
 

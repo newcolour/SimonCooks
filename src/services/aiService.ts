@@ -1529,3 +1529,227 @@ IMPORTANT: Respond in ${language === 'it' ? 'Italian' : 'English'} language. Ens
     result.type = 'drink';
     return result;
 }
+
+// Shopping List Merge System Prompt
+const SHOPPING_LIST_MERGE_PROMPT = `You are a smart shopping list assistant. Your job is to merge and consolidate shopping list items.
+
+Rules:
+1. Combine duplicate ingredients by adding their quantities
+2. Normalize units when possible (e.g., combine "1 cup" and "250ml" if both are milk)
+3. Keep the most descriptive name (e.g., "fresh basil" over "basil")
+4. Round to practical amounts (e.g., "3.5 onions" → "4 onions")
+5. Preserve checked status from the current list
+6. Remove truly duplicates, keeping the unchecked one
+
+Respond with valid JSON only:
+{
+  "items": [
+    { "name": "Onions", "amount": "3", "unit": "", "checked": false },
+    { "name": "Milk", "amount": "500", "unit": "ml", "checked": false }
+  ]
+}`;
+
+export interface MergedShoppingItem {
+    name: string;
+    amount: string;
+    unit: string;
+    checked: boolean;
+}
+
+/**
+ * Merges the current shopping list with new ingredients using AI.
+ */
+export async function mergeShoppingList(
+    settings: AISettings,
+    currentItems: { name: string; amount?: string; unit?: string; checked: boolean }[],
+    newIngredients: { name: string; amount: string; unit: string }[]
+): Promise<MergedShoppingItem[]> {
+    const currentListText = currentItems.length > 0
+        ? currentItems.map(i => `${i.amount || ''} ${i.unit || ''} ${i.name} ${i.checked ? '(checked)' : ''}`.trim()).join('\n')
+        : 'Empty list';
+
+    const newItemsText = newIngredients.map(i => `${i.amount} ${i.unit} ${i.name}`.trim()).join('\n');
+
+    const prompt = `Current Shopping List:
+${currentListText}
+
+New items to add:
+${newItemsText}
+
+Merge these lists intelligently, combining duplicates and normalizing quantities.`;
+
+    let response: string;
+
+    switch (settings.provider) {
+        case 'openai':
+            if (!settings.apiKey) throw new Error('OpenAI API key is required');
+            response = await callOpenAI(settings.apiKey, prompt, SHOPPING_LIST_MERGE_PROMPT);
+            break;
+        case 'anthropic':
+            if (!settings.apiKey) throw new Error('Anthropic API key is required');
+            response = await callAnthropic(settings.apiKey, prompt, SHOPPING_LIST_MERGE_PROMPT);
+            break;
+        case 'gemini':
+            if (!settings.apiKey) throw new Error('Gemini API key is required');
+            response = await callGemini(settings.apiKey, prompt, SHOPPING_LIST_MERGE_PROMPT);
+            break;
+        case 'ollama':
+            response = await callOllama(
+                settings.ollamaEndpoint || 'http://localhost:11434',
+                settings.ollamaModel || 'llama3.2',
+                prompt,
+                SHOPPING_LIST_MERGE_PROMPT
+            );
+            break;
+        default:
+            throw new Error('Unknown AI provider');
+    }
+
+    const jsonMatch = response.match(/```json?\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error('Failed to parse AI merge response');
+    }
+
+    const jsonStr = jsonMatch[1] || jsonMatch[0];
+    const result = JSON.parse(jsonStr.trim());
+    return result.items || [];
+}
+
+/**
+ * Simple non-AI merge for when AI is not configured.
+ * Groups by ingredient name and combines amounts.
+ */
+export function simpleShoppingMerge(
+    currentItems: { name: string; amount?: string; unit?: string; checked: boolean }[],
+    newIngredients: { name: string; amount: string; unit: string }[]
+): MergedShoppingItem[] {
+    const itemMap = new Map<string, MergedShoppingItem>();
+
+    // Add current items
+    for (const item of currentItems) {
+        const key = item.name.toLowerCase().trim();
+        if (!itemMap.has(key)) {
+            itemMap.set(key, {
+                name: item.name,
+                amount: item.amount || '',
+                unit: item.unit || '',
+                checked: item.checked
+            });
+        }
+    }
+
+    // Merge new items
+    for (const ing of newIngredients) {
+        const key = ing.name.toLowerCase().trim();
+        const existing = itemMap.get(key);
+
+        if (existing && !existing.checked) {
+            // Try to combine amounts if units match
+            const existingAmt = parseFloat(existing.amount) || 0;
+            const newAmt = parseFloat(ing.amount) || 0;
+            if (existing.unit.toLowerCase() === ing.unit.toLowerCase() || !existing.unit) {
+                existing.amount = String(existingAmt + newAmt);
+                existing.unit = ing.unit || existing.unit;
+            } else {
+                // Different units - just append
+                existing.amount = `${existing.amount}${existing.unit ? existing.unit : ''} + ${ing.amount}${ing.unit}`;
+                existing.unit = '';
+            }
+        } else if (!existing) {
+            itemMap.set(key, {
+                name: ing.name,
+                amount: ing.amount,
+                unit: ing.unit,
+                checked: false
+            });
+        }
+    }
+
+    return Array.from(itemMap.values());
+}
+
+// Chef Mode: Answer cooking questions
+const COOKING_ASSISTANT_PROMPT = `You are a friendly cooking assistant helping someone while they cook. They are actively making a recipe and have their hands dirty, so keep answers SHORT and CLEAR.
+
+Rules:
+1. Be concise - 1-3 sentences max
+2. If asked about an ingredient amount, give the EXACT amount from the recipe
+3. If asked about technique, give practical, actionable advice
+4. If asked "what's next" or "next step", just say the next step briefly
+5. Speak naturally as if you're in the kitchen with them
+6. If you don't know something, say so briefly
+
+Recipe context will be provided. Answer based on that context.`;
+
+export interface CookingQuestion {
+    recipe: {
+        title: string;
+        ingredients: { name: string; amount: string; unit: string }[];
+        instructions: string;
+    };
+    currentStep: number;
+    totalSteps: number;
+    question: string;
+}
+
+/**
+ * Answer a cooking question in context of the current recipe.
+ */
+export async function askCookingQuestion(
+    settings: AISettings,
+    context: CookingQuestion
+): Promise<string> {
+    const ingredientList = context.recipe.ingredients
+        .map(i => `${i.amount} ${i.unit} ${i.name}`.trim())
+        .join('\n');
+
+    const steps = context.recipe.instructions
+        .split(/\n+/)
+        .filter(s => s.trim())
+        .map((s, i) => `Step ${i + 1}: ${s.trim()}`);
+
+    const prompt = `Recipe: ${context.recipe.title}
+
+Ingredients:
+${ingredientList}
+
+Instructions:
+${steps.join('\n')}
+
+Current step: ${context.currentStep} of ${context.totalSteps}
+${steps[context.currentStep - 1] || ''}
+
+User's question: "${context.question}"
+
+Answer briefly and helpfully:`;
+
+    let response: string;
+
+    switch (settings.provider) {
+        case 'openai':
+            if (!settings.apiKey) throw new Error('OpenAI API key is required');
+            response = await callOpenAI(settings.apiKey, prompt, COOKING_ASSISTANT_PROMPT);
+            break;
+        case 'anthropic':
+            if (!settings.apiKey) throw new Error('Anthropic API key is required');
+            response = await callAnthropic(settings.apiKey, prompt, COOKING_ASSISTANT_PROMPT);
+            break;
+        case 'gemini':
+            if (!settings.apiKey) throw new Error('Gemini API key is required');
+            response = await callGemini(settings.apiKey, prompt, COOKING_ASSISTANT_PROMPT);
+            break;
+        case 'ollama':
+            response = await callOllama(
+                settings.ollamaEndpoint || 'http://localhost:11434',
+                settings.ollamaModel || 'llama3.2',
+                prompt,
+                COOKING_ASSISTANT_PROMPT
+            );
+            break;
+        default:
+            throw new Error('Unknown AI provider');
+    }
+
+    // Clean up response - remove any markdown or extra formatting
+    return response.replace(/```[^`]*```/g, '').trim();
+}

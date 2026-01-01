@@ -1,0 +1,422 @@
+.cooking-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--color-bg-primary);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.cooking-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem 1rem 6rem;
+    /* Added left padding for macOS traffic lights */
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.cooking-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cooking-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.cooking-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    padding: 0.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cooking-btn:hover {
+    background: var(--color-bg-hover);
+}
+
+.cooking-btn.close {
+    background: var(--color-bg-hover);
+}
+
+.cooking-btn.close:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.cooking-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+}
+
+/* Sidebar with Ingredients */
+.cooking-sidebar {
+    width: 300px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.cooking-sidebar h3 {
+    font-size: 1.25rem;
+    margin: 0 0 1rem 0;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cooking-ingredients-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cooking-ingredient {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.cooking-ingredient .amount {
+    font-weight: 600;
+    color: var(--color-accent-primary);
+    white-space: nowrap;
+}
+
+/* Main Step Display */
+.cooking-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 2rem 4rem;
+    background: var(--color-bg-primary);
+}
+
+.step-indicator {
+    font-size: 1.25rem;
+    color: var(--color-accent-primary);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.step-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-text-primary);
+    overflow-y: auto;
+}
+
+.completed-view {
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+
+.completed-view h2 {
+    font-size: 3rem;
+    color: var(--color-accent-primary);
+    margin-bottom: 1rem;
+}
+
+.completed-view p {
+    font-size: 1.5rem;
+    color: var(--color-text-secondary);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Controls */
+.cooking-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.nav-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+    background: var(--color-accent-primary);
+    color: white;
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.voice-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mic-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-accent-primary);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.2s;
+    position: relative;
+    z-index: 2;
+}
+
+.mic-btn.listening {
+    background: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+.mic-btn:hover {
+    transform: scale(1.05);
+}
+
+.voice-status {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    max-width: 300px;
+    text-align: center;
+}
+
+.voice-status.error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.mic-btn.error {
+    border: 2px solid #ef4444;
+}
+
+/* Disabled/WIP state */
+.voice-control.disabled {
+    opacity: 0.6;
+}
+
+.mic-btn.disabled {
+    background: var(--color-bg-hover);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.mic-btn.disabled:hover {
+    transform: none;
+}
+
+.voice-status.wip {
+    color: var(--color-text-muted);
+    background: var(--color-bg-tertiary);
+    font-style: italic;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+/* Chat/AI Overlay */
+.cooking-chat {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
+    padding: 1rem 2rem;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    z-index: 10;
+}
+
+.cooking-chat.active {
+    transform: translateY(0);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.chat-response {
+    display: flex;
+    gap: 1rem;
+    font-size: 1.2rem;
+    color: var(--color-text-primary);
+    padding: 1rem;
+    background: var(--color-bg-tertiary);
+    border-radius: 12px;
+    align-items: flex-start;
+}
+
+.chat-response svg {
+    color: var(--color-accent-primary);
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.chat-input {
+    flex: 1;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    color: var(--color-text-primary);
+}
+
+.chat-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+}
+
+/* Responsive */
+.cooking-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-primary);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    text-align: center;
+    color: var(--color-text-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.loading-content svg {
+    color: var(--color-accent-primary);
+}
+
+@media (max-width: 900px) {
+    .cooking-content {
+        flex-direction: column;
+    }
+
+    .cooking-sidebar {
+        width: 100%;
+        height: 150px;
+        flex-shrink: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+        padding: 1rem;
+    }
+
+    .cooking-main {
+        padding: 1rem;
+    }
+
+    .step-content {
+        font-size: 1.5rem;
+    }
+
+    .nav-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mic-btn {
+        width: 64px;
+        height: 64px;
+    }
+}

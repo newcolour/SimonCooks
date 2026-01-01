@@ -1,0 +1,398 @@
+.shopping-list {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.shopping-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-secondary);
+}
+
+.shopping-header {
+    margin-bottom: 2rem;
+}
+
+.shopping-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.shopping-title h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.shopping-title svg {
+    color: var(--color-accent-primary);
+}
+
+.shopping-subtitle {
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.shopping-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Add Item Section */
+.add-item-section {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.add-item-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.add-item-row input {
+    background: var(--bg-secondary);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.add-item-row input:focus {
+    outline: none;
+    background: var(--bg-card);
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px var(--color-accent-primary-transparent, rgba(var(--color-accent-primary-rgb), 0.15));
+}
+
+.add-item-row input::placeholder {
+    color: var(--text-tertiary);
+    /* Lighter placeholder */
+    opacity: 0.7;
+}
+
+.add-item-row .amount-input {
+    width: 80px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.add-item-row .unit-input {
+    width: 90px;
+}
+
+.add-item-row .name-input {
+    flex: 1;
+    font-weight: 500;
+}
+
+.add-item-row .add-btn {
+    background: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    border-radius: 10px;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-item-row .add-btn:hover:not(:disabled) {
+    background: var(--color-accent-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.add-item-row .add-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.add-item-row .add-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--text-tertiary);
+    box-shadow: none;
+}
+
+.ai-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.ai-hint svg {
+    color: var(--color-accent-primary);
+}
+
+/* Progress Bar */
+.shopping-progress {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-card);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-primary-hover));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* Empty State */
+.empty-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.empty-list svg {
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-list p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.empty-list span {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-top: 0.5rem;
+}
+
+/* Shopping Items */
+.shopping-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.shopping-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+}
+
+.shopping-item:hover {
+    border-color: var(--color-accent-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Completed Section */
+.completed-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px dashed var(--border-color);
+    animation: fadeIn 0.3s ease;
+}
+
+.completed-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.shopping-item.checked {
+    opacity: 0.6;
+    background: var(--bg-secondary);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.shopping-item.checked:hover {
+    opacity: 0.8;
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.shopping-item.checked .item-name {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.check-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent-primary);
+}
+
+.unchecked-circle {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-text-muted);
+    /* More visible default border */
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    background: var(--bg-main);
+    /* Ensure it has a background so it stands out */
+}
+
+.shopping-item:hover .unchecked-circle {
+    border-color: var(--color-accent-primary);
+    background: transparent;
+}
+
+.check-btn:hover .unchecked-circle {
+    border-color: var(--color-accent-primary);
+}
+
+.item-content {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.item-amount {
+    color: var(--color-accent-primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-width: 60px;
+}
+
+.item-name {
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.shopping-item:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    color: #ef4444;
+}
+
+/* Actions */
+.shopping-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.clear-checked-btn,
+.clear-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clear-checked-btn {
+    background: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+    border: none;
+}
+
+.clear-checked-btn:hover {
+    background: var(--color-accent-primary-hover);
+}
+
+.clear-all-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.clear-all-btn:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .shopping-list {
+        padding: 1rem;
+    }
+
+    .add-item-row {
+        flex-wrap: wrap;
+    }
+
+    .add-item-row .amount-input,
+    .add-item-row .unit-input {
+        width: calc(50% - 0.25rem);
+    }
+
+    .add-item-row .name-input {
+        width: 100%;
+        order: -1;
+        margin-bottom: 0.5rem;
+    }
+}

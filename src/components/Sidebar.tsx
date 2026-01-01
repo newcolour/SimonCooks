@@ -10,13 +10,15 @@ import {
     Globe,
     Leaf,
     Utensils,
-    Coffee
+    Coffee,
+    ShoppingCart,
+    Refrigerator
 } from 'lucide-react';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
 import './Sidebar.css';
 
-type ViewType = 'home' | 'recipes' | 'ai-suggest' | 'settings';
+type ViewType = 'home' | 'recipes' | 'ai-suggest' | 'settings' | 'shopping' | 'fridge';
 type FilterType = 'all' | 'recent' | 'quick' | 'favorites' | 'lowcalorie' | 'food' | 'drink' | 'ai';
 
 interface SidebarProps {
@@ -45,7 +47,9 @@ export function Sidebar({
     const navItems = [
         { id: 'home' as ViewType, icon: Home, label: t.nav.home },
         { id: 'recipes' as ViewType, icon: BookOpen, label: t.nav.recipes, count: recipeCount },
+        { id: 'fridge' as ViewType, icon: Refrigerator, label: t.nav?.fridge || "What's in my Fridge?" },
         { id: 'ai-suggest' as ViewType, icon: Sparkles, label: t.nav.aiSuggestions },
+        { id: 'shopping' as ViewType, icon: ShoppingCart, label: t.nav?.shopping || 'Shopping List' },
     ];
 
     const filterItems = [

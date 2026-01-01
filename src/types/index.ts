@@ -105,6 +105,16 @@ export interface AppSettings {
     tourCompleted?: boolean;
 }
 
+// Shopping List types
+export interface ShoppingItem {
+    id: string;
+    name: string;
+    amount?: string;
+    unit?: string;
+    checked: boolean;
+    createdAt?: string;
+}
+
 // Electron API types
 export interface ElectronAPI {
     recipe: {
@@ -115,11 +125,23 @@ export interface ElectronAPI {
         delete: (id: string) => Promise<boolean>;
         search: (query: string) => Promise<Recipe[]>;
         searchByIngredient: (ingredient: string) => Promise<Recipe[]>;
+        export: (options: { type: 'all' | 'food' | 'drink' }) => Promise<{ success: boolean; count?: number; cancelled?: boolean }>;
+        import: () => Promise<{ success: boolean; count?: number; cancelled?: boolean }>;
     };
     settings: {
         get: (key: string) => Promise<unknown>;
         set: (key: string, value: unknown) => Promise<boolean>;
         getAll: () => Promise<Record<string, unknown>>;
+    };
+    shoppingList: {
+        getAll: () => Promise<ShoppingItem[]>;
+        addItem: (item: ShoppingItem) => Promise<ShoppingItem>;
+        addMultiple: (items: ShoppingItem[]) => Promise<ShoppingItem[]>;
+        updateItem: (item: ShoppingItem) => Promise<ShoppingItem>;
+        deleteItem: (id: string) => Promise<boolean>;
+        clearChecked: () => Promise<boolean>;
+        clearAll: () => Promise<boolean>;
+        replaceAll: (items: ShoppingItem[]) => Promise<ShoppingItem[]>;
     };
     platform: string;
     fetchUrl: (url: string) => Promise<string>;
@@ -137,3 +159,4 @@ declare global {
 
 // This export is needed to make this file a module
 export { };
+

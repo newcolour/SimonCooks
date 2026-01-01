@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Recipe, AISettings } from '../types';
 import type { Language } from '../i18n';
 import { getTranslation } from '../i18n';
-import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutrition, calculateFlavorProfile, type SuggestedRecipe } from '../services/aiService';
+import { generateRecipeImage, suggestWinePairing, translateRecipe, calculateNutrition, calculateFlavorProfile, mergeShoppingList, simpleShoppingMerge, type SuggestedRecipe } from '../services/aiService';
 import type { WinePairingSuggestion, WinePairing } from '../services/aiService';
 import { FlavorChart } from './FlavorChart';
 import { RemixModal } from './RemixModal';
+import { CookingMode } from './CookingMode';
 import {
     Clock,
     Users,
@@ -29,7 +30,9 @@ import {
     Martini,
     Snowflake,
     Maximize2,
-    Minimize2
+    Minimize2,
+    ShoppingCart,
+    PlayCircle
 } from 'lucide-react';
 import './RecipeDetail.css';
 
@@ -64,6 +67,9 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     const [showImageModal, setShowImageModal] = useState(false);
     const [pendingImage, setPendingImage] = useState<string | null>(null); // New image waiting for confirmation
     const [showBackToTop, setShowBackToTop] = useState(false);
+    const [addingToList, setAddingToList] = useState(false);
+    const [addedToList, setAddedToList] = useState(false);
+    const [showCookingMode, setShowCookingMode] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const t = getTranslation(language);
 
@@ -107,6 +113,79 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
         if (r.type === 'drink') return true;
         const keywords = ['drink', 'bevanda', 'bevande', 'cocktail', 'mocktail', 'smoothie', 'shake', 'coffee', 'tea', 'beverage', 'liquor', 'alcolico', 'aperitif', 'digestif'];
         return r.categories?.some(c => keywords.some(k => c.toLowerCase().includes(k))) || false;
+    };
+
+    // Add ingredients to shopping list (with AI merge)
+    const handleAddToShoppingList = async () => {
+        if (!activeRecipe || !window.electronAPI?.shoppingList) return;
+
+        setAddingToList(true);
+        setAddedToList(false);
+
+        try {
+            // Get current shopping list
+            const currentItems = await window.electronAPI.shoppingList.getAll();
+            const newIngredients = activeRecipe.ingredients.map(ing => ({
+                name: ing.name,
+                amount: ing.amount,
+                unit: ing.unit
+            }));
+
+            const hasAI = aiSettings?.apiKey || aiSettings?.provider === 'ollama';
+
+            if (hasAI && aiSettings && currentItems.length > 0) {
+                // Use AI merge
+                try {
+                    const merged = await mergeShoppingList(aiSettings, currentItems, newIngredients);
+                    const newItems = merged.map(m => ({
+                        id: crypto.randomUUID(),
+                        name: m.name,
+                        amount: m.amount,
+                        unit: m.unit,
+                        checked: m.checked
+                    }));
+                    await window.electronAPI.shoppingList.replaceAll(newItems);
+                } catch {
+                    // Fallback to simple merge
+                    const merged = simpleShoppingMerge(currentItems, newIngredients);
+                    const newItems = merged.map(m => ({
+                        id: crypto.randomUUID(),
+                        name: m.name,
+                        amount: m.amount,
+                        unit: m.unit,
+                        checked: m.checked
+                    }));
+                    await window.electronAPI.shoppingList.replaceAll(newItems);
+                }
+            } else if (currentItems.length > 0) {
+                // Simple merge without AI
+                const merged = simpleShoppingMerge(currentItems, newIngredients);
+                const newItems = merged.map(m => ({
+                    id: crypto.randomUUID(),
+                    name: m.name,
+                    amount: m.amount,
+                    unit: m.unit,
+                    checked: m.checked
+                }));
+                await window.electronAPI.shoppingList.replaceAll(newItems);
+            } else {
+                // Add directly (empty list)
+                const newItems = newIngredients.map(ing => ({
+                    id: crypto.randomUUID(),
+                    name: ing.name,
+                    amount: ing.amount,
+                    unit: ing.unit,
+                    checked: false
+                }));
+                await window.electronAPI.shoppingList.addMultiple(newItems);
+            }
+
+            setAddedToList(true);
+            // Reset after 3 seconds
+            setTimeout(() => setAddedToList(false), 3000);
+        } finally {
+            setAddingToList(false);
+        }
     };
 
     // Calculate scaled ingredient amount
@@ -317,8 +396,38 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
         }
     };
 
+    // Touch Handling for Swipe Back
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const minSwipeDistance = 100;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchEnd - touchStart;
+        const isRightSwipe = distance > minSwipeDistance;
+        // Only trigger if swipe started from the left edge area (optional, but better UX)
+        // For now, allow any right swipe to close
+        if (isRightSwipe) {
+            onClose();
+        }
+    };
+
     return (
-        <div className="recipe-detail">
+        <div
+            className="recipe-detail"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
 
             {showRemixModal && activeRecipe && aiSettings && onSaveNewRecipe && (
                 <RemixModal
@@ -347,14 +456,14 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                     )}
                     {aiSettings && (
                         <button
-                            className={`action-btn translate ${translatedRecipe ? 'active' : ''}`}
+                            className={`action-btn tooltip-btn translate ${translatedRecipe ? 'active' : ''}`}
                             onClick={handleTranslate}
                             disabled={translating}
                             title={translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}
                             style={{ marginRight: '8px' }}
                         >
                             {translating ? <Loader size={18} className="animate-spin" /> : <Languages size={18} />}
-                            <span className="hide-mobile">{translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}</span>
+                            <span className="action-label">{translatedRecipe ? t.recipe.showOriginal : t.recipe.translate}</span>
                         </button>
                     )}
                     {/* Remix Button (Drinks Only) */}
@@ -366,16 +475,46 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                             style={{ marginRight: '8px' }}
                         >
                             <Sparkles size={18} />
-                            <span>Remix</span>
+                            <span className="action-label">Remix</span>
                         </button>
                     )}
-                    <button className="action-btn edit" onClick={onEdit}>
-                        <Edit size={18} />
-                        <span>{t.recipe.edit}</span>
+
+                    {/* Start Cooking Button */}
+                    <button
+                        className="action-btn start-cooking"
+                        onClick={() => setShowCookingMode(true)}
+                        title={t.cooking?.start || "Start Cooking"}
+                    >
+                        <PlayCircle size={18} />
+                        <span className="action-label">{t.cooking?.start || "Start Cooking"}</span>
                     </button>
-                    <button className="action-btn delete" onClick={handleDelete}>
+
+                    {/* Add to Shopping List */}
+                    {window.electronAPI?.shoppingList && (
+                        <button
+                            className={`action-btn tooltip-btn shopping ${addedToList ? 'success' : ''}`}
+                            onClick={handleAddToShoppingList}
+                            disabled={addingToList}
+                            title={t.shopping?.addedToList || 'Add to Shopping List'}
+                            style={{ marginRight: '8px' }}
+                        >
+                            {addingToList ? (
+                                <Loader size={18} className="animate-spin" />
+                            ) : addedToList ? (
+                                <CheckCircle size={18} />
+                            ) : (
+                                <ShoppingCart size={18} />
+                            )}
+                            <span className="action-label">{addedToList ? (t.shopping?.addedToList || 'Added!') : (t.nav?.shopping || 'Shopping')}</span>
+                        </button>
+                    )}
+                    <button className="action-btn tooltip-btn edit" onClick={onEdit}>
+                        <Edit size={18} />
+                        <span className="action-label">{t.recipe.edit}</span>
+                    </button>
+                    <button className="action-btn tooltip-btn delete" onClick={handleDelete}>
                         <Trash2 size={18} />
-                        <span>{t.recipe.delete}</span>
+                        <span className="action-label">{t.recipe.delete}</span>
                     </button>
                 </div>
             </div>
@@ -991,6 +1130,15 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                     <ArrowUp size={20} />
                 </button>
             )}
-        </div >
+            {/* Cooking Mode Overlay */}
+            {showCookingMode && activeRecipe && aiSettings && (
+                <CookingMode
+                    recipe={activeRecipe}
+                    aiSettings={aiSettings}
+                    language={language}
+                    onClose={() => setShowCookingMode(false)}
+                />
+            )}
+        </div>
     );
 }
