@@ -78,7 +78,7 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     const [pendingImage, setPendingImage] = useState<string | null>(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareText, setShareText] = useState('');
-    const [remixPrompt, setRemixPrompt] = useState('');
+
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [addingToList, setAddingToList] = useState(false);
     const [addedToList, setAddedToList] = useState(false);
