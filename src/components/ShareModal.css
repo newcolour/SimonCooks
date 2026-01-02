@@ -1,0 +1,80 @@
+.share-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.share-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.share-instruction {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.share-textarea {
+    width: 100%;
+    height: 200px;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    resize: none;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.share-textarea:focus {
+    outline: 2px solid var(--color-accent-primary);
+    border-color: transparent;
+}
+
+.share-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+/* Reusing action-btn styles but ensuring specific layout */
+.share-actions .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.share-actions .action-btn.secondary {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.share-actions .action-btn.secondary:hover {
+    background: var(--color-bg-secondary);
+}
+
+.share-actions .action-btn.primary {
+    background: var(--color-accent-primary);
+    color: white;
+}
+
+.share-actions .action-btn.primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.share-actions .action-btn.success {
+    background: #10b981;
+    /* Green-500 */
+}

@@ -10,6 +10,7 @@ import { FlavorChart } from './FlavorChart';
 import { RemixModal } from './RemixModal';
 import { ValidationConfirmModal } from './ValidationConfirmModal';
 import { CookingMode } from './CookingMode';
+import { ShareModal } from './ShareModal';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import {
@@ -74,7 +75,10 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
     const [calculatingFlavor, setCalculatingFlavor] = useState(false);
     const [flavorError, setFlavorError] = useState<string | null>(null);
     const [showImageModal, setShowImageModal] = useState(false);
-    const [pendingImage, setPendingImage] = useState<string | null>(null); // New image waiting for confirmation
+    const [pendingImage, setPendingImage] = useState<string | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareText, setShareText] = useState('');
+    const [remixPrompt, setRemixPrompt] = useState('');
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [addingToList, setAddingToList] = useState(false);
     const [addedToList, setAddedToList] = useState(false);
@@ -305,19 +309,16 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                     dialogTitle: language === 'it' ? 'Condividi Ricetta' : 'Share Recipe',
                 });
             } else {
-                // Desktop: Direct clipboard write to ensure permission and avoid Share API error
-                await navigator.clipboard.writeText(text);
-                alert(language === 'it' ? 'Ricetta copiata negli appunti!' : 'Recipe copied to clipboard!');
+                // Desktop: Open Share Modal for manual copy/save
+                setShareText(text);
+                setShowShareModal(true);
             }
         } catch (e: any) {
             console.error('Share failed', e);
             if (e.message !== 'Share canceled') {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    alert(language === 'it' ? 'Ricetta copiata negli appunti!' : 'Recipe copied to clipboard!');
-                } catch {
-                    alert(language === 'it' ? 'Errore durante la condivisione.' : 'Share failed.');
-                }
+                // Fallback to modal on error too
+                setShareText(text);
+                setShowShareModal(true);
             }
         }
     };
@@ -538,6 +539,15 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
                         setValidationSuggestion(null);
                     }}
                     onCancel={() => setValidationSuggestion(null)}
+                    language={language}
+                />
+            )}
+
+            {showShareModal && (
+                <ShareModal
+                    title={activeRecipe?.title || 'Recipe'}
+                    text={shareText}
+                    onClose={() => setShowShareModal(false)}
                     language={language}
                 />
             )}
