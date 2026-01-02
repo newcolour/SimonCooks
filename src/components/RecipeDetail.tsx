@@ -11,6 +11,7 @@ import { RemixModal } from './RemixModal';
 import { ValidationConfirmModal } from './ValidationConfirmModal';
 import { CookingMode } from './CookingMode';
 import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import {
     Clock,
     Users,
@@ -297,20 +298,25 @@ export function RecipeDetail({ recipe, onEdit, onDelete, onClose, onUpdateRecipe
             `${t.recipe.instructions}:\n${activeRecipe.instructions}`;
 
         try {
-            await Share.share({
-                title: activeRecipe.title,
-                text: text,
-                dialogTitle: language === 'it' ? 'Condividi Ricetta' : 'Share Recipe',
-            });
+            if (Capacitor.isNativePlatform()) {
+                await Share.share({
+                    title: activeRecipe.title,
+                    text: text,
+                    dialogTitle: language === 'it' ? 'Condividi Ricetta' : 'Share Recipe',
+                });
+            } else {
+                // Desktop: Direct clipboard write to ensure permission and avoid Share API error
+                await navigator.clipboard.writeText(text);
+                alert(language === 'it' ? 'Ricetta copiata negli appunti!' : 'Recipe copied to clipboard!');
+            }
         } catch (e: any) {
-            console.log('Share error', e);
-            // Fallback to clipboard if share not supported or failed (but not canceled)
-            if (e.message !== 'Share canceled' && e.name !== 'AbortError') {
+            console.error('Share failed', e);
+            if (e.message !== 'Share canceled') {
                 try {
                     await navigator.clipboard.writeText(text);
                     alert(language === 'it' ? 'Ricetta copiata negli appunti!' : 'Recipe copied to clipboard!');
-                } catch (err) {
-                    console.error('Clipboard failed', err);
+                } catch {
+                    alert(language === 'it' ? 'Errore durante la condivisione.' : 'Share failed.');
                 }
             }
         }
